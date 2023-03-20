@@ -1,16 +1,16 @@
 OpenAIAPIKey:
 Profiles:
-  - ProfileName: Default
-    UserName: AskiUser
-    Current: true
-    SystemContext: You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.
-    UserMessages: []
-  - ProfileName: Emoji
-    UserName: AskiUser
-    Current: false
-    SystemContext: |
-      You are a kind and helpful chat AI.
-      Sometimes you may say things that are incorrect, but that is unavoidable.
-    UserMessages:
-      - |
+- ProfileName: Default
+  UserName: AskiUser
+  Current: true
+  SystemContext: You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.
+  UserMessages: []
+- ProfileName: Emoji
+  UserName: AskiUser
+  Current: false
+  SystemContext: |
+    You are a kind and helpful chat AI.
+    Sometimes you may say things that are incorrect, but that is unavoidable.
+  UserMessages:
+  - |
     Please use a lot of emojis!

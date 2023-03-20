@@ -207,7 +207,7 @@ func main() {
 
 	rootCmd.AddCommand(changeProfileCmd)
 	rootCmd.PersistentFlags().StringP("profile", "p", "", "Select the profile to use for this conversation, as defined in the .aski/config.yaml file.")
-	rootCmd.PersistentFlags().BoolP("rest", "r", true, "When you specify this flag, you will communicate with the REST API instead of streaming. This can be useful if the communication is unstable or if you are not receiving responses properly.")
+	rootCmd.PersistentFlags().BoolP("rest", "r", false, "When you specify this flag, you will communicate with the REST API instead of streaming. This can be useful if the communication is unstable or if you are not receiving responses properly.")
 
 	rootCmd.Execute()
 }
