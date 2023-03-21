@@ -6,7 +6,6 @@
 
 ## 機能
 
-- ゼロコンフィグ
 - ファイル読み取り機能
 - プロファイル機能 異なる会話コンテキストを簡単に切り替えることができます。
 - Streaming APIとREST APIのサポート
@@ -32,6 +31,7 @@ $ aski
 ```
 - `-h, --help`: ヘルプメッセージを表示します。
 - `-p, --profile`: この会話で使用するプロファイルを選択します。プロファイルは、.aski/config.yamlファイルで定義されます。
+- `-f, --file`: 会話とともに送信するファイルを指定します。
 - `-c, --content`: 対話モードを利用せず、引数のコンテンツの回答を出力してプログラムを終了します。他アプリケーションとの連携に便利です。
 - `-s, --system`: ChatGPTに渡すシステムコンテキストをオーバーライドするオプションです。
 - `-r, --rest`: REST APIで通信します。ストリーミングが不安定な場合や、適切な応答が受信できない場合に便利です。
@@ -42,14 +42,14 @@ $ aski
 `file` は、指定されたファイルの内容をユーザーコンテキストとしてChatGPTに送信するためのオプションです。
 
 ```bash
-$ aski file [flags] file1 file2 file3 ...
+$ aski -f file1　-f file2 -f file3 ...
 ```
 
 このオプションを使用することで、指定したファイルの内容をすべてChatGPTに送信することができます。
 
 ```bash
 $ echo -e "Hello,\nWorld!" > hello.txt
-$ aski file -f hello.txt
+$ aski -f hello.txt
 ```
 
 上記の例では、"Hello,\nWorld!"というコンテンツを持つファイルhello.txtからコンテキストが送信されます。次にコンテキストは、ChatGPTを介して応答ストリームに送信されます。
@@ -57,10 +57,10 @@ $ aski file -f hello.txt
 ファイルは、パターン検索を使用して複数渡すことができます。例えば、以下のコマンドでは、現在のディレクトリからすべての.txtファイルのコンテンツを送信します。
 
 ```bash
-$ aski file -f *.txt
+$ aski -f *.txt
 
 # 特定のファイルのみを送信することもできます。
-$ aski file -f hello.txt world.txt ...
+$ aski -f hello.txt -f world.txt ...
 ```
 
 ## プロファイル

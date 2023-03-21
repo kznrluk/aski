@@ -8,7 +8,15 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 	"os"
+	"path/filepath"
 )
+
+type FileContents struct {
+	Name     string
+	Path     string
+	Contents string
+	Length   int
+}
 
 func getProfile(cfg config.Config, target string) config.Profile {
 	for _, profile := range cfg.Profiles {
@@ -23,11 +31,21 @@ func getProfile(cfg config.Config, target string) config.Profile {
 	return config.DefaultProfile()
 }
 
+func isBinary(contents []byte) bool {
+	for _, ch := range contents {
+		if ch == 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func Aski(cmd *cobra.Command, args []string) {
 	profileTarget, err := cmd.Flags().GetString("profile")
 	isRestMode, _ := cmd.Flags().GetBool("rest")
 	content, _ := cmd.Flags().GetString("content")
 	system, _ := cmd.Flags().GetString("system")
+	fileGlobs, _ := cmd.Flags().GetStringSlice("file")
 
 	checkAPIKey()
 	cfg, err := config.Init()
@@ -54,6 +72,49 @@ func Aski(cmd *cobra.Command, args []string) {
 		})
 	}
 
+	if len(fileGlobs) != 0 {
+		var fileContents []FileContents
+		for _, arg := range fileGlobs {
+			files, err := filepath.Glob(arg)
+			if err != nil {
+				panic(err)
+			}
+			for _, file := range files {
+				contentsBytes, err := os.ReadFile(file)
+				if err != nil {
+					panic(err)
+				}
+				content := string(contentsBytes)
+				if isBinary(contentsBytes) {
+					continue
+				}
+
+				info, err := os.Stat(file)
+				if err != nil {
+					panic(err)
+				}
+
+				fileContents = append(fileContents, FileContents{
+					Name:     info.Name(),
+					Path:     file,
+					Contents: content,
+					Length:   len(content),
+				})
+			}
+		}
+
+		for _, f := range fileContents {
+			if content == "" {
+				fmt.Printf("Append File: %s\n", f.Name)
+			}
+			ctx = append(ctx, openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleUser,
+				Name:    prof.UserName,
+				Content: fmt.Sprintf("Path: `%s`\n ```\n%s```", f.Path, f.Contents),
+			})
+		}
+	}
+
 	for _, i := range prof.UserMessages {
 		ctx = append(ctx, openai.ChatCompletionMessage{
 			Role:    openai.ChatMessageRoleUser,
@@ -68,6 +129,7 @@ func Aski(cmd *cobra.Command, args []string) {
 			Name:    prof.UserName,
 			Content: content,
 		})
+
 		_, _ = Single(cfg, ctx, isRestMode)
 	} else {
 		StartDialog(cfg, prof, ctx, isRestMode)

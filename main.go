@@ -13,13 +13,6 @@ func main() {
 		Run:   lib.Aski,
 	}
 
-	fileCmd := &cobra.Command{
-		Use:   "file",
-		Short: ".",
-		Long:  "Profiles are usually located in the .aski/config.yaml file in the home directory.",
-		Run:   lib.File,
-	}
-
 	changeProfileCmd := &cobra.Command{
 		Use:   "profile",
 		Short: "Select profile.",
@@ -28,8 +21,8 @@ func main() {
 		Run: lib.ChangeProfile,
 	}
 
-	rootCmd.AddCommand(fileCmd)
 	rootCmd.AddCommand(changeProfileCmd)
+	rootCmd.PersistentFlags().StringSliceP("file", "f", []string{}, "Input file(s) to start dialog from. Can be specified multiple times.")
 	rootCmd.PersistentFlags().StringP("profile", "p", "", "Select the profile to use for this conversation, as defined in the .aski/config.yaml file.")
 	rootCmd.PersistentFlags().StringP("content", "c", "", "Input text to start dialog from command line")
 	rootCmd.PersistentFlags().StringP("system", "s", "", "The `system` flag is an option to override the system context passed to the ChatGPT model with the value provided as the flag argument.")
