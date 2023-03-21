@@ -29,13 +29,15 @@ func ChangeProfile(cmd *cobra.Command, args []string) {
 
 	_ = survey.AskOne(prompt, &selected)
 
-	for _, p := range profiles {
+	for i, p := range profiles {
 		if selected == p.ProfileName {
-			p.Current = true
+			profiles[i].Current = true
 		} else {
-			p.Current = false
+			profiles[i].Current = false
 		}
 	}
+
+	cfg.Profiles = profiles
 
 	if err := config.Save(cfg); err != nil {
 		fmt.Printf("Error: %s", err.Error())
