@@ -19,7 +19,7 @@ type Profile struct {
 	Current       bool     `yaml:"Current"`
 	SystemContext string   `yaml:"SystemContext"`
 	UserMessages  []string `yaml:"UserMessages"`
-	Model         string   `yaml:"Model""`
+	Model         string   `yaml:"Model"`
 }
 
 type Config struct {
