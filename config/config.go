@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/goccy/go-yaml"
+	"github.com/sashabaranov/go-openai"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,6 +19,7 @@ type Profile struct {
 	Current       bool     `yaml:"Current"`
 	SystemContext string   `yaml:"SystemContext"`
 	UserMessages  []string `yaml:"UserMessages"`
+	Model         string   `yaml:"Model""`
 }
 
 type Config struct {
@@ -41,6 +43,7 @@ func DefaultProfile() Profile {
 		UserName:      "AskiUser",
 		Current:       true,
 		SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
+		Model:         openai.GPT3Dot5Turbo0301,
 		UserMessages:  []string{},
 	}
 }

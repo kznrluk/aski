@@ -130,7 +130,7 @@ func Aski(cmd *cobra.Command, args []string) {
 			Content: content,
 		})
 
-		_, _ = Single(cfg, ctx, isRestMode)
+		_, _ = Single(cfg, prof, ctx, isRestMode)
 	} else {
 		StartDialog(cfg, prof, ctx, isRestMode)
 	}

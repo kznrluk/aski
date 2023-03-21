@@ -40,14 +40,14 @@ func StartDialog(cfg config.Config, profile config.Profile, ctx []openai.ChatCom
 
 		data := ""
 		if isRestMode {
-			d, err := restMode(oc, ctx)
+			d, err := restMode(oc, ctx, profile.Model)
 			if err != nil {
 				fmt.Printf(err.Error())
 				continue
 			}
 			data = d
 		} else {
-			d, err := streamMode(oc, ctx)
+			d, err := streamMode(oc, ctx, profile.Model)
 			if err != nil {
 				fmt.Printf(err.Error())
 				continue
@@ -64,19 +64,19 @@ func StartDialog(cfg config.Config, profile config.Profile, ctx []openai.ChatCom
 	}
 }
 
-func Single(cfg config.Config, ctx []openai.ChatCompletionMessage, isRestMode bool) (string, error) {
+func Single(cfg config.Config, profile config.Profile, ctx []openai.ChatCompletionMessage, isRestMode bool) (string, error) {
 	oc := openai.NewClient(cfg.OpenAIAPIKey)
 
 	data := ""
 	if isRestMode {
-		d, err := restMode(oc, ctx)
+		d, err := restMode(oc, ctx, profile.Model)
 		if err != nil {
 			fmt.Printf(err.Error())
 			return "", nil
 		}
 		data = d
 	} else {
-		d, err := streamMode(oc, ctx)
+		d, err := streamMode(oc, ctx, profile.Model)
 		if err != nil {
 			fmt.Printf(err.Error())
 			return "", nil
@@ -87,14 +87,14 @@ func Single(cfg config.Config, ctx []openai.ChatCompletionMessage, isRestMode bo
 	return data, nil
 }
 
-func restMode(oc *openai.Client, ctx []openai.ChatCompletionMessage) (string, error) {
+func restMode(oc *openai.Client, ctx []openai.ChatCompletionMessage, model string) (string, error) {
 	yellow := color.New(color.FgHiYellow).SprintFunc()
 
 	data := ""
 	resp, err := oc.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    openai.GPT3Dot5Turbo,
+			Model:    model,
 			Messages: ctx,
 		},
 	)
@@ -108,14 +108,14 @@ func restMode(oc *openai.Client, ctx []openai.ChatCompletionMessage) (string, er
 	return data, nil
 }
 
-func streamMode(oc *openai.Client, ctx []openai.ChatCompletionMessage) (string, error) {
+func streamMode(oc *openai.Client, ctx []openai.ChatCompletionMessage, model string) (string, error) {
 	yellow := color.New(color.FgHiYellow).SprintFunc()
 
 	data := ""
 	stream, err := oc.CreateChatCompletionStream(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    openai.GPT3Dot5Turbo,
+			Model:    model,
 			Messages: ctx,
 		},
 	)

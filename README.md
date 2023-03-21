@@ -78,11 +78,13 @@ OpenAIAPIKey:
 Profiles:
   - ProfileName: Default
     UserName: AskiUser
+    Model: gpt-3.5-turbo-0301
     Current: true
     SystemContext: You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.
     UserMessages: []
   - ProfileName: Emoji
     UserName: AskiUser
+    Model: gpt-3.5-turbo-0301
     Current: false
     SystemContext: |
       You are a kind and helpful chat AI.
@@ -92,6 +94,9 @@ Profiles:
         Please use a lot of emojis!
 
 ```
+
+SystemContextは常に最初に送信され、UserMessagesはその次に送信されます。ファイルを指定した際はSystemContextとUserMessagesの間にファイルの情報が添付されます。
+
 
 デフォルトで使用されるプロファイルは、Currentの値を true にするか、下記コマンドで変更できます。
 ```
