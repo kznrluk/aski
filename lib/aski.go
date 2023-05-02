@@ -5,7 +5,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/kznrluk/aski/config"
-	"github.com/kznrluk/aski/ctx"
+	"github.com/kznrluk/aski/conv"
+	"github.com/kznrluk/aski/session"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 	"os"
@@ -29,7 +30,8 @@ func getProfile(cfg config.Config, target string) config.Profile {
 		}
 	}
 	fmt.Printf("WARN: Valid profile not found, using default profile.\n")
-	return config.DefaultProfile()
+	initCfg := config.InitialConfig()
+	return initCfg.Profiles[0]
 }
 
 func isBinary(contents []byte) bool {
@@ -46,6 +48,8 @@ func Aski(cmd *cobra.Command, args []string) {
 	isRestMode, _ := cmd.Flags().GetBool("rest")
 	content, _ := cmd.Flags().GetString("content")
 	fileGlobs, _ := cmd.Flags().GetStringSlice("file")
+	verbose, _ := cmd.Flags().GetBool("verbose")
+	session.SetVerbose(verbose)
 
 	checkAPIKey()
 	cfg, err := config.Init()
@@ -58,7 +62,7 @@ func Aski(cmd *cobra.Command, args []string) {
 	}
 
 	prof := getProfile(cfg, profileTarget)
-	ctx := ctx.NewContext(prof, cfg)
+	ctx := conv.NewContext(prof)
 	ctx.Append(openai.ChatMessageRoleSystem, prof.SystemContext)
 
 	if len(fileGlobs) != 0 {

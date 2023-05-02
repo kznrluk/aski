@@ -2,158 +2,158 @@ package lib
 
 import (
 	"bufio"
-	"context"
 	"fmt"
-	"github.com/fatih/color"
+	"github.com/kznrluk/aski/chat"
 	"github.com/kznrluk/aski/command"
 	"github.com/kznrluk/aski/config"
-	"github.com/kznrluk/aski/ctx"
+	"github.com/kznrluk/aski/conv"
 	"github.com/sashabaranov/go-openai"
-	"io"
 	"os"
+	"os/signal"
+	"path/filepath"
 	"strings"
+	"time"
 )
 
-func StartDialog(cfg config.Config, profile config.Profile, ctx ctx.Context, isRestMode bool) {
-	oc := openai.NewClient(cfg.OpenAIAPIKey)
-
+func StartDialog(cfg config.Config, profile config.Profile, conv conv.Conversation, isRestMode bool) {
 	if isRestMode {
 		fmt.Printf("REST Mode \n")
 	}
 
-	fmt.Printf("%s@%s> ", profile.UserName, profile.ProfileName)
 	reader := bufio.NewReader(os.Stdin)
+	first := true
 	for {
-		input, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				break
+		printPrompt(profile)
+
+		input, err, interrupt := getInput(reader)
+		if interrupt {
+			if cfg.AutoSave && !first {
+				fmt.Printf("\nSaving conversation... ")
+				fn, err := saveConversation(conv)
+				if err != nil {
+					fmt.Printf("\n error saving conversation: %v\n", err)
+					os.Exit(1)
+				}
+				fmt.Println(fn)
 			}
+			os.Exit(0)
+		}
+
+		if err != nil {
 			fmt.Printf("Error Occured: %v\n", err)
 			continue
 		}
 
-		if len(input) == 0 {
-			printPrompt(profile)
+		if input == "" {
 			continue
 		}
 
-		input = strings.TrimSpace(input)
-
-		if len(input) > 0 && input[0] == ':' {
-			str, cont, commandErr := command.Parse(input, ctx)
-			if commandErr != nil {
-				fmt.Printf("Command error: %v\n", commandErr)
-			}
-
-			if !cont {
-				printPrompt(profile)
-				continue
-			}
-
-			yellow := color.New(color.FgBlue).SprintFunc()
-			fmt.Println(yellow(str))
-			input = str
+		input, cont, commandErr := parseCommand(input, conv)
+		if commandErr != nil {
+			fmt.Printf("Command error: %v\n", commandErr)
 		}
 
-		ctx.Append(openai.ChatMessageRoleUser, input)
+		if !cont {
+			continue
+		}
 
-		data := ""
-		if isRestMode {
-			data, err = restMode(oc, ctx, profile.Model)
-			if err != nil {
-				fmt.Printf(err.Error())
-				continue
+		conv.Append(openai.ChatMessageRoleUser, input)
+
+		data, err := chat.RetrieveResponse(isRestMode, cfg, conv, profile.Model)
+		if err != nil {
+			fmt.Printf(err.Error())
+			continue
+		}
+
+		conv.Append(openai.ChatMessageRoleAssistant, data)
+		if first {
+			first = false
+
+			if cfg.Summarize {
+				summary := chat.GetSummary(cfg, conv)
+				conv.SetSummary(summary)
 			}
+		}
+	}
+}
+
+func Single(cfg config.Config, profile config.Profile, ctx conv.Conversation, isRestMode bool) (string, error) {
+	data, err := chat.RetrieveResponse(isRestMode, cfg, ctx, profile.Model)
+	if err != nil {
+		fmt.Printf(err.Error())
+		return "", nil
+	}
+
+	return data, nil
+}
+
+func getInput(reader *bufio.Reader) (string, error, bool) {
+	sigintChan := make(chan os.Signal, 1)
+	signal.Notify(sigintChan, os.Interrupt)
+
+	inputChan := make(chan string, 1)
+	go func() {
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			inputChan <- ""
 		} else {
-			data, err = streamMode(oc, ctx, profile.Model)
-			if err != nil {
-				fmt.Printf(err.Error())
-				continue
-			}
+			inputChan <- strings.TrimSpace(input)
 		}
+	}()
 
-		ctx.Append(openai.ChatMessageRoleAssistant, data)
-		printPrompt(profile)
+	select {
+	case input := <-inputChan:
+		return input, nil, false
+	case <-sigintChan:
+		return "", nil, true
 	}
 }
 
-func Single(cfg config.Config, profile config.Profile, ctx ctx.Context, isRestMode bool) (string, error) {
-	oc := openai.NewClient(cfg.OpenAIAPIKey)
-
-	data := ""
-	if isRestMode {
-		d, err := restMode(oc, ctx, profile.Model)
-		if err != nil {
-			fmt.Printf(err.Error())
-			return "", nil
-		}
-		data = d
-	} else {
-		d, err := streamMode(oc, ctx, profile.Model)
-		if err != nil {
-			fmt.Printf(err.Error())
-			return "", nil
-		}
-		data = d
+func saveConversation(conv conv.Conversation) (string, error) {
+	t := time.Now()
+	escapedSummary := ""
+	if conv.Summary() != "" {
+		escapedSummary += "_"
+		escapedSummary += filepath.Clean(conv.Summary())
 	}
+	filename := fmt.Sprintf("%s%s.yaml", t.Format("20060102-150405"), escapedSummary)
 
-	return data, nil
-}
-
-func restMode(oc *openai.Client, ctx ctx.Context, model string) (string, error) {
-	yellow := color.New(color.FgYellow).SprintFunc()
-
-	data := ""
-	resp, err := oc.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model:    model,
-			Messages: ctx.ToChatCompletionMessage(),
-		},
-	)
-
+	homeDir, err := config.GetHomeDir()
 	if err != nil {
-		return "", err
+		return filename, err
 	}
-	fmt.Printf("%s", yellow(resp.Choices[0].Message.Content))
-	data = resp.Choices[0].Message.Content
 
-	return data, nil
+	configDir := filepath.Join(homeDir, ".aski", "history")
+	if err := os.MkdirAll(configDir, 0700); err != nil {
+		return filename, err
+	}
+
+	yamlString, err := conv.ToYAML()
+	if err != nil {
+		return filename, err
+	}
+
+	filePath := filepath.Join(configDir, filename)
+	err = os.WriteFile(filePath, yamlString, 0600)
+	if err != nil {
+		return filename, err
+	}
+
+	return filename, nil
 }
 
-func streamMode(oc *openai.Client, ctx ctx.Context, model string) (string, error) {
-	yellow := color.New(color.FgYellow).SprintFunc()
-
-	data := ""
-	stream, err := oc.CreateChatCompletionStream(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model:    model,
-			Messages: ctx.ToChatCompletionMessage(),
-		},
-	)
-
-	if err != nil {
-		return "", err
-	}
-
-	for {
-		resp, err := stream.Recv()
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				return "", err
-			}
+func parseCommand(input string, ctx conv.Conversation) (string, bool, error) {
+	if len(input) > 0 && input[0] == ':' {
+		str, cont, commandErr := command.Parse(input, ctx)
+		if commandErr != nil {
+			return "", false, commandErr
 		}
 
-		fmt.Printf("%s", yellow(resp.Choices[0].Delta.Content))
-		data += resp.Choices[0].Delta.Content
+		fmt.Println(str)
+		return str, cont, nil
 	}
 
-	fmt.Printf("\n\n")
-	return data, nil
+	return input, true, nil
 }
 
 func printPrompt(profile config.Profile) {
