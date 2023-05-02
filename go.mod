@@ -6,7 +6,7 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/fatih/color v1.15.0
 	github.com/goccy/go-yaml v1.10.0
-	github.com/sashabaranov/go-openai v1.5.3
+	github.com/sashabaranov/go-openai v1.9.0
 	github.com/spf13/cobra v1.6.1
 )
 

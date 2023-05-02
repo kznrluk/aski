@@ -5,13 +5,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/fatih/color"
+	"github.com/kznrluk/aski/command"
 	"github.com/kznrluk/aski/config"
+	"github.com/kznrluk/aski/ctx"
 	"github.com/sashabaranov/go-openai"
 	"io"
 	"os"
 )
 
-func StartDialog(cfg config.Config, profile config.Profile, ctx []openai.ChatCompletionMessage, isRestMode bool) {
+func StartDialog(cfg config.Config, profile config.Profile, ctx ctx.Context, isRestMode bool) {
 	oc := openai.NewClient(cfg.OpenAIAPIKey)
 
 	if isRestMode {
@@ -30,41 +32,44 @@ func StartDialog(cfg config.Config, profile config.Profile, ctx []openai.ChatCom
 			continue
 		}
 
-		ctx = append(ctx, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleUser,
-			Name:    profile.UserName,
-			Content: input,
-		})
+		if len(input) == 0 {
+			printPrompt(profile)
+			continue
+		}
 
-		// fmt.Printf("%v", ctx)
+		if len(input) > 0 && input[0] == ':' {
+			commandErr := command.Parse(input, ctx)
+			if commandErr != nil {
+				fmt.Printf("Command error: %v\n", commandErr)
+			}
+
+			printPrompt(profile)
+			continue
+		}
+
+		ctx.Append(openai.ChatMessageRoleSystem, input)
 
 		data := ""
 		if isRestMode {
-			d, err := restMode(oc, ctx, profile.Model)
+			data, err = restMode(oc, ctx, profile.Model)
 			if err != nil {
 				fmt.Printf(err.Error())
 				continue
 			}
-			data = d
 		} else {
-			d, err := streamMode(oc, ctx, profile.Model)
+			data, err = streamMode(oc, ctx, profile.Model)
 			if err != nil {
 				fmt.Printf(err.Error())
 				continue
 			}
-			data = d
 		}
 
-		ctx = append(ctx, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleAssistant,
-			Content: data,
-		})
-
-		fmt.Printf("\n\n%s@%s> ", profile.UserName, profile.ProfileName)
+		ctx.Append(openai.ChatMessageRoleAssistant, data)
+		printPrompt(profile)
 	}
 }
 
-func Single(cfg config.Config, profile config.Profile, ctx []openai.ChatCompletionMessage, isRestMode bool) (string, error) {
+func Single(cfg config.Config, profile config.Profile, ctx ctx.Context, isRestMode bool) (string, error) {
 	oc := openai.NewClient(cfg.OpenAIAPIKey)
 
 	data := ""
@@ -87,7 +92,7 @@ func Single(cfg config.Config, profile config.Profile, ctx []openai.ChatCompleti
 	return data, nil
 }
 
-func restMode(oc *openai.Client, ctx []openai.ChatCompletionMessage, model string) (string, error) {
+func restMode(oc *openai.Client, ctx ctx.Context, model string) (string, error) {
 	yellow := color.New(color.FgHiYellow).SprintFunc()
 
 	data := ""
@@ -95,20 +100,20 @@ func restMode(oc *openai.Client, ctx []openai.ChatCompletionMessage, model strin
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:    model,
-			Messages: ctx,
+			Messages: ctx.ToChatCompletionMessage(),
 		},
 	)
 
 	if err != nil {
 		return "", err
 	}
-	fmt.Printf("%s", yellow(resp.Choices[0].Message.Content))
+	fmt.Printf("%s, %s", yellow(resp.Choices[0].Message.Content))
 	data = resp.Choices[0].Message.Content
 
 	return data, nil
 }
 
-func streamMode(oc *openai.Client, ctx []openai.ChatCompletionMessage, model string) (string, error) {
+func streamMode(oc *openai.Client, ctx ctx.Context, model string) (string, error) {
 	yellow := color.New(color.FgHiYellow).SprintFunc()
 
 	data := ""
@@ -116,7 +121,7 @@ func streamMode(oc *openai.Client, ctx []openai.ChatCompletionMessage, model str
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:    model,
-			Messages: ctx,
+			Messages: ctx.ToChatCompletionMessage(),
 		},
 	)
 
@@ -139,4 +144,8 @@ func streamMode(oc *openai.Client, ctx []openai.ChatCompletionMessage, model str
 	}
 
 	return data, nil
+}
+
+func printPrompt(profile config.Profile) {
+	fmt.Printf("\n\n%s@%s> ", profile.UserName, profile.ProfileName)
 }
