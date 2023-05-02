@@ -1,127 +1,127 @@
-# ASKI - ChatGPT Client for Console
+# ASKI - Console ChatGPT Client
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/kznrluk/aski)](https://goreportcard.com/report/github.com/kznrluk/aski)
 
-`aski` は、コンソールでChatGPTを利用できるミニマルなクライアントです。
+`aski` is a minimal ChatGPT client for the console.
 
-## 機能
-- GPT4対応
-- 会話履歴の保存と復元
-- 任意時点の会話へ移動
-- GLOBによるファイル添付機能
-- プロファイル機能 異なる会話コンテキストを簡単に切り替え可能
-- Streaming APIとREST APIのサポート
+## Features
+- GPT4 supported
+- Save and restore conversation history
+- Move to any point in the conversation
+- File attachment with GLOB support
+- Profile feature for easily switching between different conversation contexts
+- Support for Streaming API and REST API
 
-## インストール
-今のところ `go install` のみに対応しています。
+## Installation
+Currently, only `go install` is supported.
 
 ```
 go install github.com/kznrluk/aski@main
 ```
 
-## 使い方
+## Usage
 
 ```bash
 $ aski
 ```
 
-このコマンドは、対話的なChatGPTセッションを開始し、標準入力からユーザーのインプットを受け取ります。
-特に指定がなければデフォルトの汎用的なプロファイルを使用します。
+This command starts an interactive ChatGPT session and takes user input from stdin.
+By default, it uses a generic profile, unless otherwise specified.
 
-## オプション
+## Options
 
 ```
-- `-h, --help`: ヘルプメッセージを表示します。
-- `-p, --profile`: この会話で使用するプロファイルを選択します。プロファイルは、.aski/config.yamlファイルで定義されます。
-- `-f, --file`: 会話とともに送信するファイルを指定します。
-- `-c, --content`: 対話モードを利用せず、引数のコンテンツの回答を出力してプログラムを終了します。他アプリケーションとの連携に便利です。
-- `-r, --restore`: 会話履歴をヒストリファイルから復元します。このオプションを使用すると、以前の会話を続けることができます。前方一致。
-- `--rest`: REST APIで通信します。ストリーミングが不安定な場合や、適切な応答が受信できない場合に便利です。
+- `-h, --help`: Displays help message.
+- `-p, --profile`: Choose the profile to use for this conversation. Profiles are defined in the .aski/config.yaml file.
+- `-f, --file`: Specifies a file to send with the conversation.
+- `-c, --content`: Outputs the answer for the content of the argument without using the interactive mode and ends the program. Useful for integration with other applications.
+- `-r, --restore`: Restores the conversation history from a history file. With this option, you can continue a previous conversation. Forward match.
+- `--rest`: Communicate with the REST API. Useful when streaming is unstable or appropriate responses cannot be received.
 ```
 
-## インラインコマンド
+## Inline Commands
+
 ```
-  :history - 会話履歴を表示します
-  :summary - 会話の概要があれば表示します プロファイルでSummarizeがTrueになっている必要があります
-  :move    - 次に投稿する会話の親となるメッセージを指定します。
-  :config  - 設定やプロファイル、履歴の含まれているフォルダを開きます。
-  :editor  - 外部エディタを利用します
-  :exit    - プログラムを終了します
+  :history - Display the conversation history
+  :summary - Display the conversation summary if it exists. Summarize must be set to True in the profile.
+  :move    - Specify the parent message for the next post in the conversation.
+  :config  - Opens the folder containing the configuration, profiles, and history.
+  :editor  - Use an external editor
+  :exit    - Exit the program
 ```
 
-`:exit` 以外のコマンドは、前方一致で検索されます。例えば、`:h` と入力すると `:history` が実行されます。
+All commands except `:exit` are searched by forward match. For example, typing `:h` will execute `:history`.
 
-## 外部エディタの利用
-コンソールでの入力が難しい改行付きのプロンプトや、長文の入力を行う場合は、外部エディタを使用することができます。
+## Using an External Editor
+For prompts with line breaks or long input that is difficult to input on the console, you can use an external editor.
 
 ```
 aski@GPT4> :editor
 ```
 
-EDITOR環境変数に設定されたエディタが起動します。エディタを終了すると、入力された内容がChatGPTに送信されます。Windowsの場合はデフォルトでnotepad、macOS, Linuxの場合はデフォルトでvimが起動します。
+The editor set in the EDITOR environment variable will start. Once the editor is closed, the content entered will be sent to ChatGPT. The default is notepad on Windows and vim on macOS and Linux.
 
-## ファイルの内容を扱う
+## Handling File Content
 
-`file` は、指定されたファイルの内容をユーザーコンテキストとしてChatGPTに送信するためのオプションです。
+`file` is an option to send the contents of the specified file as user context to ChatGPT.
 
 ```bash
-$ aski -f file1　-f file2 -f file3 ...
+$ aski -f file1 -f file2 -f file3 ...
 ```
 
-このオプションを使用することで、指定したファイルの内容をすべてChatGPTに送信することができます。
+With this option, you can send the contents of all the specified files to ChatGPT.
 
 ```bash
 $ echo -e "Hello,\nWorld!" > hello.txt
 $ aski -f hello.txt
 ```
 
-上記の例では、"Hello,\nWorld!"というコンテンツを持つファイルhello.txtが会話に含まれて送信されるようになります。
+In the example above, the hello.txt file with the content "Hello,\nWorld!" will be included in the conversation and sent.
 
-ファイルは、パターン検索を使用して複数渡すことができます。例えば、以下のコマンドでは、現在のディレクトリからすべての.txtファイルのコンテンツを送信します。
+Files can be passed in multiples using pattern search. For example, the following command sends the contents of all .txt files in the current directory.
 
 ```bash
 $ aski -f *.txt
 
-# 特定のファイルのみを送信することもできます。
+# You can also send specific files.
 $ aski -f hello.txt -f world.txt ...
 ```
 
-## プロファイル
+## Profiles
 
-プロファイルを使用することで、異なる会話コンテキストや設定簡単に切り替えることができます。プロファイルには、以下の機能があります。
+By using profiles, you can easily switch between different conversation contexts and settings. Profiles have the following features.
 
 **UserName**
 
-ユーザー名です。ChatGPTに送信されるメッセージの発言者として送信されます。
+The username. It will be sent as the sender of the messages sent to ChatGPT.
 
 **Model**
 
-使用するモデルの名前です。OpenAIのAPIで利用できる値である必要があります。
+The name of the model you want to use. It must be a valid value that can be used with the OpenAI API.
 
 [Models - OpenAI API](https://platform.openai.com/docs/models/chatgpt)
 
 **Current**
 
-現在のプロファイルかどうかを示します。trueに設定されているプロファイルが使用されます。
+Indicates whether the profile is currently active. Profiles set to true will be used.
 
 **AutoSave**
 
-会話履歴を自動的に保存するかどうかを示します。trueに設定されているプロファイルは、会話履歴を自動的に保存します。
+Indicates whether to automatically save the conversation history. Profiles set to true will automatically save the conversation history.
 
 **Summarize**
 
-会話の概要を表示するかどうかを示します。trueに設定されているプロファイルで会話を始めた際、会話の概要をGPT3.5で生成します。
+Indicates whether to display the conversation summary. When starting a conversation with a profile set to true, a summary of the conversation will be generated using GPT3.5.
 
 **SystemContext**
 
-ChatGPTに送信されるシステムコンテキストです。会話の最初に送信され、どのような会話をしてほしいかをChatGPTに伝えます。
+The system context that will be sent to ChatGPT. It is sent at the beginning of the conversation to tell ChatGPT what kind of conversation you want to have.
 
 **UserMessages**
 
-ChatGPTに送信されるユーザーコンテキストです。会話の最初に送信されます。SystemContextに含めたくない場合に利用します。
+The user context that will be sent to ChatGPT. It is sent at the beginning of the conversation. Use it when you don't want to include information in the SystemContext.
 
-
-UserMessagesやSystemContextに必要なメッセージを追加しておけば、Askiは起動時にそれを読み込み、自動的にChatGPTに伝えます。
+By adding the required messages to UserMessages and SystemContext, Aski will read them at startup and automatically communicate them to ChatGPT.
 
 ```yaml
 OpenAIAPIKey:
@@ -146,16 +146,16 @@ Profiles:
     UserMessages:
       - |
         Please use a lot of emojis!
-
 ```
 
-SystemContextは常に最初に送信され、UserMessagesはその次に送信されます。ファイルを指定した際はSystemContextとUserMessagesの間にファイルの情報が添付されます。
+SystemContext is always sent first, followed by UserMessages. If a file is specified, the file information will be attached between the SystemContext and UserMessages.
 
-デフォルトで使用されるプロファイルは、Currentの値を true にするか、下記コマンドで変更できます。
+The default profile to be used can be changed by setting the value of Current to true, or by using the following command:
+
 ```
 aski profile
 ```
 
-## ライセンス
+## License
 
 MIT
