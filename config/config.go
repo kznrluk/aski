@@ -185,12 +185,10 @@ func Init() (Config, error) {
 func OpenConfigDir() bool {
 	var cmd *exec.Cmd
 
-	home, err := GetHomeDir()
+	aski, err := GetAskiDir()
 	if err != nil {
 		fmt.Printf("can't get home dir")
 	}
-
-	aski := home + "/.aski"
 
 	switch runtime.GOOS {
 	case "windows":

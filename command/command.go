@@ -151,7 +151,7 @@ func openEditor(conv conv.Conversation) (string, bool, error) {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	comments := "\n\n"
+	comments := "\n\n# Save and close editor to continue\n"
 	s := conv.MessagesFromHead()
 	for i := len(s) - 1; i >= 0; i-- {
 		msg := s[i]
@@ -160,7 +160,7 @@ func openEditor(conv conv.Conversation) (string, bool, error) {
 			head = "Head"
 		}
 
-		d := fmt.Sprintf("# Save and close editor to continue \n\n# %.*s -> %.*s [%s] %s\n", 6, msg.Sha1, 6, msg.ParentSha1, msg.Role, head)
+		d := fmt.Sprintf("#\n# %.*s -> %.*s [%s] %s\n", 6, msg.Sha1, 6, msg.ParentSha1, msg.Role, head)
 		for _, context := range strings.Split(msg.Content, "\n") {
 			d += fmt.Sprintf("#   %s\n", context)
 		}

@@ -28,7 +28,14 @@ func GetSummary(cfg config.Config, conv conv.Conversation) string {
 	oc := openai.NewClient(cfg.OpenAIAPIKey)
 
 	c := ""
-	for _, msg := range conv.GetMessages() {
+	messages := conv.GetMessages()
+	start := len(messages) - 2
+	if start < 0 {
+		start = 0
+	}
+
+	for i := start; i < len(messages); i++ {
+		msg := messages[i]
 		if msg.Role == openai.ChatMessageRoleSystem {
 			continue
 		}
@@ -48,7 +55,7 @@ func GetSummary(cfg config.Config, conv conv.Conversation) string {
 				},
 				{
 					Role:    openai.ChatMessageRoleUser,
-					Content: "Give this conversation a short title in the language of the conversation in one line, without symbols.",
+					Content: "Give only this conversation a short title in the language of the conversation in one line, without symbols.",
 					Name:    "Aski",
 				},
 			},

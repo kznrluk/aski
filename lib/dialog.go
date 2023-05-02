@@ -15,13 +15,13 @@ import (
 	"time"
 )
 
-func StartDialog(cfg config.Config, profile config.Profile, conv conv.Conversation, isRestMode bool) {
+func StartDialog(cfg config.Config, profile config.Profile, conv conv.Conversation, isRestMode bool, restored bool) {
 	if isRestMode {
 		fmt.Printf("REST Mode \n")
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	first := true
+	first := !restored
 	for {
 		printPrompt(profile)
 

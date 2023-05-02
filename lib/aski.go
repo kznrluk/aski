@@ -107,7 +107,7 @@ func Aski(cmd *cobra.Command, args []string) {
 		ctx.Append(openai.ChatMessageRoleUser, content)
 		_, _ = Single(cfg, prof, ctx, isRestMode)
 	} else {
-		StartDialog(cfg, prof, ctx, isRestMode)
+		StartDialog(cfg, prof, ctx, isRestMode, restore != "")
 	}
 }
 
