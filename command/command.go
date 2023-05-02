@@ -141,7 +141,11 @@ func showSummary(conv conv.Conversation) {
 }
 
 func openEditor(conv conv.Conversation) (string, bool, error) {
-	tmpFile, err := os.CreateTemp("", "aski-editor-")
+	tempDir, err := config.GetAskiDir()
+	if err != nil {
+		return "", false, fmt.Errorf("failed to get aski directory: %v", err)
+	}
+	tmpFile, err := os.CreateTemp(tempDir, "aski-editor-")
 	if err != nil {
 		return "", false, fmt.Errorf("failed to create a temp file: %v", err)
 	}

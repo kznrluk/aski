@@ -81,6 +81,15 @@ func GetHomeDir() (string, error) {
 	}
 }
 
+func GetAskiDir() (string, error) {
+	str, err := GetHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(str, ".aski"), nil
+}
+
 func GetHistoryDir() (string, error) {
 	str, err := GetHomeDir()
 	if err != nil {
@@ -91,12 +100,11 @@ func GetHistoryDir() (string, error) {
 }
 
 func InitSave() error {
-	homeDir, err := os.UserHomeDir()
+	configDir, err := GetAskiDir()
 	if err != nil {
 		return err
 	}
 
-	configDir := filepath.Join(homeDir, ".aski")
 	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return err
 	}
@@ -121,12 +129,11 @@ func Save(config Config) error {
 		return err
 	}
 
-	homeDir, err := os.UserHomeDir()
+	configDir, err := GetAskiDir()
 	if err != nil {
 		return err
 	}
 
-	configDir := filepath.Join(homeDir, ".aski")
 	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return err
 	}
