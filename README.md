@@ -2,6 +2,8 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/kznrluk/aski)](https://goreportcard.com/report/github.com/kznrluk/aski)
 
+[🇯🇵 README-JA.md here!](https://github.com/kznrluk/aski/blob/main/README-JA.md)
+
 `aski` is a minimal ChatGPT client for the console.
 
 ## Features
