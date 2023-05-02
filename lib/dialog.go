@@ -26,8 +26,8 @@ func StartDialog(cfg config.Config, profile config.Profile, conv conv.Conversati
 		printPrompt(profile)
 
 		input, err, interrupt := getInput(reader)
-		if interrupt {
-			if cfg.AutoSave && !first {
+		if interrupt || input == ":exit" {
+			if profile.AutoSave && !first {
 				fmt.Printf("\nSaving conversation... ")
 				fn, err := saveConversation(conv)
 				if err != nil {
@@ -69,7 +69,7 @@ func StartDialog(cfg config.Config, profile config.Profile, conv conv.Conversati
 		if first {
 			first = false
 
-			if cfg.Summarize {
+			if profile.Summarize {
 				summary := chat.GetSummary(cfg, conv)
 				conv.SetSummary(summary)
 			}
@@ -112,18 +112,13 @@ func getInput(reader *bufio.Reader) (string, error, bool) {
 func saveConversation(conv conv.Conversation) (string, error) {
 	t := time.Now()
 	escapedSummary := ""
-	if conv.Summary() != "" {
+	if conv.GetSummary() != "" {
 		escapedSummary += "_"
-		escapedSummary += filepath.Clean(conv.Summary())
+		escapedSummary += cleanFilenameElement(filepath.Clean(conv.GetSummary()))
 	}
 	filename := fmt.Sprintf("%s%s.yaml", t.Format("20060102-150405"), escapedSummary)
 
-	homeDir, err := config.GetHomeDir()
-	if err != nil {
-		return filename, err
-	}
-
-	configDir := filepath.Join(homeDir, ".aski", "history")
+	configDir, err := config.GetHistoryDir()
 	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return filename, err
 	}
@@ -142,8 +137,17 @@ func saveConversation(conv conv.Conversation) (string, error) {
 	return filename, nil
 }
 
+func cleanFilenameElement(input string) string {
+	invalidCharacters := [...]string{"/", "\\", "?", "%", "*", "|", "<", ">"}
+	output := input
+	for _, char := range invalidCharacters {
+		output = strings.Replace(output, char, "-", -1)
+	}
+	return output
+}
+
 func parseCommand(input string, ctx conv.Conversation) (string, bool, error) {
-	if len(input) > 0 && input[0] == ':' {
+	if len(input) > 0 && input[0] == ':' && input != ":exit" {
 		str, cont, commandErr := command.Parse(input, ctx)
 		if commandErr != nil {
 			return "", false, commandErr

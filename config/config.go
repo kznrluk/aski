@@ -17,6 +17,8 @@ type Profile struct {
 	ProfileName   string   `yaml:"ProfileName"`
 	UserName      string   `yaml:"UserName"`
 	Current       bool     `yaml:"Current"`
+	AutoSave      bool     `yaml:"AutoSave"`
+	Summarize     bool     `yaml:"Summarize"`
 	SystemContext string   `yaml:"SystemContext"`
 	UserMessages  []string `yaml:"UserMessages"`
 	Model         string   `yaml:"Model"`
@@ -24,8 +26,6 @@ type Profile struct {
 
 type Config struct {
 	OpenAIAPIKey string    `yaml:"OpenAIAPIKey"`
-	AutoSave     bool      `yaml:"AutoSave"`
-	Summarize    bool      `yaml:"Summarize"`
 	Profiles     []Profile `yaml:"Profiles"`
 }
 
@@ -36,21 +36,33 @@ func InitialConfig() Config {
 	}
 	return Config{
 		OpenAIAPIKey: "",
-		AutoSave:     true,
-		Summarize:    true,
 		Profiles: []Profile{
 			{
 				ProfileName:   "GPT3.5",
 				UserName:      currentUser.Username,
 				Current:       true,
+				AutoSave:      true,
+				Summarize:     true,
 				SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
 				Model:         openai.GPT3Dot5Turbo,
+				UserMessages:  []string{},
+			},
+			{
+				ProfileName:   "GPT4",
+				UserName:      currentUser.Username,
+				Current:       true,
+				AutoSave:      true,
+				Summarize:     true,
+				SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
+				Model:         openai.GPT4,
 				UserMessages:  []string{},
 			},
 			{
 				ProfileName:   "GPT3.5Emoji",
 				UserName:      currentUser.Username,
 				Current:       false,
+				AutoSave:      true,
+				Summarize:     true,
 				SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable. With lot of emojis.",
 				Model:         openai.GPT3Dot5Turbo,
 				UserMessages:  []string{},
@@ -67,6 +79,15 @@ func GetHomeDir() (string, error) {
 	} else {
 		return "", fmt.Errorf("cannot find home directory")
 	}
+}
+
+func GetHistoryDir() (string, error) {
+	str, err := GetHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(str, ".aski", "history"), nil
 }
 
 func InitSave() error {

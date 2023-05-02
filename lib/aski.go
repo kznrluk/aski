@@ -48,6 +48,7 @@ func Aski(cmd *cobra.Command, args []string) {
 	isRestMode, _ := cmd.Flags().GetBool("rest")
 	content, _ := cmd.Flags().GetString("content")
 	fileGlobs, _ := cmd.Flags().GetStringSlice("file")
+	restore, _ := cmd.Flags().GetString("restore")
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	session.SetVerbose(verbose)
 
@@ -62,21 +63,44 @@ func Aski(cmd *cobra.Command, args []string) {
 	}
 
 	prof := getProfile(cfg, profileTarget)
-	ctx := conv.NewContext(prof)
-	ctx.Append(openai.ChatMessageRoleSystem, prof.SystemContext)
 
-	if len(fileGlobs) != 0 {
-		fileContents := getFileContents(fileGlobs)
-		for _, f := range fileContents {
-			if content == "" {
-				fmt.Printf("Append File: %s\n", f.Name)
-			}
-			ctx.Append(openai.ChatMessageRoleUser, fmt.Sprintf("Path: `%s`\n ```\n%s```", f.Path, f.Contents))
+	var ctx conv.Conversation
+	if restore != "" {
+		load, fileName, err := ReadFileFromPWDAndHistoryDir(restore)
+		if err != nil {
+			fmt.Printf("error reading restore file: %v\n", err)
+			os.Exit(1)
 		}
-	}
 
-	for _, i := range prof.UserMessages {
-		ctx.Append(openai.ChatMessageRoleUser, i)
+		ctx, err = conv.FromYAML(load)
+		if err != nil {
+			fmt.Printf("error parsing restore file: %v\n", err)
+			os.Exit(1)
+		}
+
+		if len(fileGlobs) != 0 {
+			// TODO: We should be able to renew file contents from the globs
+			fmt.Printf("WARN: File globs are ignored when loading restore.\n")
+		}
+
+		println("Restore conversations from " + fileName)
+	} else {
+		ctx = conv.NewConversation(prof)
+		ctx.Append(openai.ChatMessageRoleSystem, prof.SystemContext)
+
+		if len(fileGlobs) != 0 {
+			fileContents := getFileContents(fileGlobs)
+			for _, f := range fileContents {
+				if content == "" {
+					fmt.Printf("Append File: %s\n", f.Name)
+				}
+				ctx.Append(openai.ChatMessageRoleUser, fmt.Sprintf("Path: `%s`\n ```\n%s```", f.Path, f.Contents))
+			}
+		}
+
+		for _, i := range prof.UserMessages {
+			ctx.Append(openai.ChatMessageRoleUser, i)
+		}
 	}
 
 	if content != "" {

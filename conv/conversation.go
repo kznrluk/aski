@@ -13,10 +13,10 @@ import (
 
 type (
 	Conversation interface {
-		Messages() []Message
+		GetMessages() []Message
 		MessagesFromHead() []Message
 		SetSummary(summary string)
-		Summary() string
+		GetSummary() string
 		Append(role string, message string)
 		ToChatCompletionMessage() []openai.ChatCompletionMessage
 		ChangeHead(sha string) (Message, error)
@@ -24,41 +24,41 @@ type (
 	}
 
 	conv struct {
-		userName string    `yaml:"UserName"`
-		model    string    `yaml:"Model"`
-		summary  string    `yaml:"Summary"`
-		messages []Message `yaml:"Messages"`
+		UserName string
+		Model    string
+		Summary  string
+		Messages []Message
 	}
 
 	Message struct {
 		Sha1       string
 		ParentSha1 string
 		Role       string
-		Content    string
+		Content    string `yaml:"Content,literal"`
 		UserName   string
 		Head       bool
 	}
 )
 
-func (c conv) Messages() []Message {
-	return c.messages
+func (c conv) GetMessages() []Message {
+	return c.Messages
 }
 
 func (c *conv) SetSummary(summary string) {
-	c.summary = summary
+	c.Summary = summary
 }
 
-func (c conv) Summary() string {
-	return c.summary
+func (c conv) GetSummary() string {
+	return c.Summary
 }
 
 func (c *conv) Append(role string, message string) {
 	parent := "ROOT"
-	for i, m := range c.messages {
+	for i, m := range c.Messages {
 		if m.Head {
 			parent = m.Sha1
 		}
-		c.messages[i].Head = false
+		c.Messages[i].Head = false
 	}
 
 	sha := CalculateSHA1([]string{role, message, parent})
@@ -72,17 +72,17 @@ func (c *conv) Append(role string, message string) {
 	}
 
 	if role == openai.ChatMessageRoleUser {
-		msg.UserName = c.userName
+		msg.UserName = c.UserName
 	}
 
-	c.messages = append(c.messages, msg)
+	c.Messages = append(c.Messages, msg)
 }
 
 func (c *conv) ChangeHead(sha1Partial string) (Message, error) {
 	foundSha := false
 	foundMessageIndex := -1
 
-	for i, message := range c.messages {
+	for i, message := range c.Messages {
 		if strings.HasPrefix(message.Sha1, sha1Partial) {
 			foundSha = true
 			foundMessageIndex = i
@@ -91,10 +91,10 @@ func (c *conv) ChangeHead(sha1Partial string) (Message, error) {
 	}
 
 	if foundSha {
-		for i := range c.messages {
-			c.messages[i].Head = i == foundMessageIndex
+		for i := range c.Messages {
+			c.Messages[i].Head = i == foundMessageIndex
 		}
-		return c.messages[foundMessageIndex], nil
+		return c.Messages[foundMessageIndex], nil
 	}
 	return Message{}, fmt.Errorf("no message found with provided sha1Partial: %s", sha1Partial)
 }
@@ -103,7 +103,7 @@ func (c conv) MessagesFromHead() []Message {
 	foundHead := false
 	currentHead := ""
 	for !foundHead {
-		for _, message := range c.messages {
+		for _, message := range c.Messages {
 			if message.Head {
 				foundHead = true
 				currentHead = message.Sha1
@@ -117,12 +117,12 @@ func (c conv) MessagesFromHead() []Message {
 
 		messageChain := []Message{}
 		for currentHead != "" {
-			for i, message := range c.messages {
+			for i, message := range c.Messages {
 				if message.Sha1 == currentHead {
 					currentHead = message.ParentSha1
 					messageChain = append(messageChain, message)
 					break
-				} else if i == len(c.messages)-1 {
+				} else if i == len(c.Messages)-1 {
 					currentHead = ""
 				}
 			}
@@ -166,13 +166,22 @@ func (c conv) ToYAML() ([]byte, error) {
 	return yamlBytes, nil
 }
 
-func NewContext(profile config.Profile) Conversation {
+func NewConversation(profile config.Profile) Conversation {
 	return &conv{
-		userName: profile.UserName,
-		model:    profile.Model,
-		summary:  "",
-		messages: []Message{},
+		UserName: profile.UserName,
+		Model:    profile.Model,
+		Summary:  "",
+		Messages: []Message{},
 	}
+}
+
+func FromYAML(yamlBytes []byte) (Conversation, error) {
+	var c conv
+	err := yaml.Unmarshal(yamlBytes, &c)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
 }
 
 func CalculateSHA1(stringsArray []string) string {

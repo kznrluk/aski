@@ -93,8 +93,6 @@ func Parse(input string, conv conv.Conversation) (string, bool, error) {
 		return "", false, nil
 	} else if commands[0] == ":editor" {
 		return openEditor(conv)
-	} else if commands[0] == ":exit" {
-		os.Exit(0)
 	}
 
 	return "", false, fmt.Errorf("unknown command")
@@ -122,7 +120,7 @@ func changeHead(sha1Partial string, context conv.Conversation) error {
 func showContext(conv conv.Conversation) {
 	yellow := color.New(color.FgHiYellow).SprintFunc()
 	blue := color.New(color.FgHiBlue).SprintFunc()
-	for _, msg := range conv.MessagesFromHead() {
+	for _, msg := range conv.GetMessages() {
 		head := ""
 		if msg.Head {
 			head = "Head"
@@ -139,7 +137,7 @@ func showContext(conv conv.Conversation) {
 
 func showSummary(conv conv.Conversation) {
 	blue := color.New(color.FgHiBlue).SprintFunc()
-	fmt.Printf(blue(conv.Summary()))
+	fmt.Printf(blue(conv.GetSummary()))
 }
 
 func openEditor(conv conv.Conversation) (string, bool, error) {
@@ -150,7 +148,7 @@ func openEditor(conv conv.Conversation) (string, bool, error) {
 	defer os.Remove(tmpFile.Name())
 
 	comments := "\n\n"
-	s := conv.Messages()
+	s := conv.MessagesFromHead()
 	for i := len(s) - 1; i >= 0; i-- {
 		msg := s[i]
 		head := ""
@@ -206,9 +204,9 @@ func openEditor(conv conv.Conversation) (string, bool, error) {
 		}
 	}
 
-	if len(strings.TrimSpace(string(result))) == 0 {
+	if len(strings.TrimSpace(result)) == 0 {
 		return "", false, nil
 	}
 
-	return string(result), true, nil
+	return result, true, nil
 }
