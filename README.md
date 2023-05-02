@@ -1,12 +1,14 @@
-# ASKI - Console ChatGPT Client
+# ASKI - ChatGPT Client for Terminal
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/kznrluk/aski)](https://goreportcard.com/report/github.com/kznrluk/aski)
 
 [🇯🇵 README-JA.md here!](https://github.com/kznrluk/aski/blob/main/README-JA.md)
 
-`aski` is a minimal ChatGPT client for the console.
+`aski` is a minimal ChatGPT client for the Terminal.
 
 ## Features
+- Written in Go, so it can be used on any platform that supports Go.
+- Works in the shell, compatible with PowerShell and Terminal.
 - GPT4 supported
 - Save and restore conversation history
 - Move to any point in the conversation

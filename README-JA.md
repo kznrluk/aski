@@ -1,11 +1,13 @@
-# ASKI - ChatGPT Client for Console
+# ASKI - ChatGPT Client for Terminal
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/kznrluk/aski)](https://goreportcard.com/report/github.com/kznrluk/aski)
 
-`aski` は、コンソールでChatGPTを利用できるミニマルなクライアントです。
+`aski` は、ターミナルｓでChatGPTを利用できるミニマルなクライアントです。
 
 ## 機能
-- GPT4対応
+- Go言語によるマルチプラットフォーム対応 & シングルバイナリ
+- PowerShellやTerminalでの利用が可能
+- GPT-4対応
 - 会話履歴の保存と復元
 - 任意時点の会話へ移動
 - GLOBによるファイル添付機能
