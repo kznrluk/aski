@@ -11,6 +11,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"io"
 	"os"
+	"strings"
 )
 
 func StartDialog(cfg config.Config, profile config.Profile, ctx ctx.Context, isRestMode bool) {
@@ -37,17 +38,25 @@ func StartDialog(cfg config.Config, profile config.Profile, ctx ctx.Context, isR
 			continue
 		}
 
+		input = strings.TrimSpace(input)
+
 		if len(input) > 0 && input[0] == ':' {
-			commandErr := command.Parse(input, ctx)
+			str, cont, commandErr := command.Parse(input, ctx)
 			if commandErr != nil {
 				fmt.Printf("Command error: %v\n", commandErr)
 			}
 
-			printPrompt(profile)
-			continue
+			if !cont {
+				printPrompt(profile)
+				continue
+			}
+
+			yellow := color.New(color.FgBlue).SprintFunc()
+			fmt.Println(yellow(str))
+			input = str
 		}
 
-		ctx.Append(openai.ChatMessageRoleSystem, input)
+		ctx.Append(openai.ChatMessageRoleUser, input)
 
 		data := ""
 		if isRestMode {
@@ -93,7 +102,7 @@ func Single(cfg config.Config, profile config.Profile, ctx ctx.Context, isRestMo
 }
 
 func restMode(oc *openai.Client, ctx ctx.Context, model string) (string, error) {
-	yellow := color.New(color.FgHiYellow).SprintFunc()
+	yellow := color.New(color.FgYellow).SprintFunc()
 
 	data := ""
 	resp, err := oc.CreateChatCompletion(
@@ -107,14 +116,14 @@ func restMode(oc *openai.Client, ctx ctx.Context, model string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	fmt.Printf("%s, %s", yellow(resp.Choices[0].Message.Content))
+	fmt.Printf("%s", yellow(resp.Choices[0].Message.Content))
 	data = resp.Choices[0].Message.Content
 
 	return data, nil
 }
 
 func streamMode(oc *openai.Client, ctx ctx.Context, model string) (string, error) {
-	yellow := color.New(color.FgHiYellow).SprintFunc()
+	yellow := color.New(color.FgYellow).SprintFunc()
 
 	data := ""
 	stream, err := oc.CreateChatCompletionStream(
@@ -143,9 +152,10 @@ func streamMode(oc *openai.Client, ctx ctx.Context, model string) (string, error
 		data += resp.Choices[0].Delta.Content
 	}
 
+	fmt.Printf("\n\n")
 	return data, nil
 }
 
 func printPrompt(profile config.Profile) {
-	fmt.Printf("\n\n%s@%s> ", profile.UserName, profile.ProfileName)
+	fmt.Printf("%s@%s> ", profile.UserName, profile.ProfileName)
 }
