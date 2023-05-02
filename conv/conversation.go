@@ -34,7 +34,7 @@ type (
 		Sha1       string
 		ParentSha1 string
 		Role       string
-		Content    string `yaml:"Content,literal"`
+		Content    string `yaml:"content,literal"`
 		UserName   string
 		Head       bool
 	}
