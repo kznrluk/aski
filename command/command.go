@@ -160,7 +160,7 @@ func openEditor(conv conv.Conversation) (string, bool, error) {
 			head = "Head"
 		}
 
-		d := fmt.Sprintf("#\n# %.*s -> %.*s [%s] %s\n", 6, msg.Sha1, 6, msg.ParentSha1, msg.Role, head)
+		d := fmt.Sprintf("# Save and close editor to continue \n\n# %.*s -> %.*s [%s] %s\n", 6, msg.Sha1, 6, msg.ParentSha1, msg.Role, head)
 		for _, context := range strings.Split(msg.Content, "\n") {
 			d += fmt.Sprintf("#   %s\n", context)
 		}
@@ -205,7 +205,8 @@ func openEditor(conv conv.Conversation) (string, bool, error) {
 
 	result := ""
 	for _, d := range strings.Split(string(content), "\n") {
-		if !strings.HasPrefix(d, "#") {
+		trimmed := strings.TrimSpace(d)
+		if !strings.HasPrefix(d, "#") && trimmed != "\n" {
 			result += d + "\n"
 		}
 	}
