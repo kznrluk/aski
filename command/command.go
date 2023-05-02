@@ -145,7 +145,7 @@ func openEditor(conv conv.Conversation) (string, bool, error) {
 	if err != nil {
 		return "", false, fmt.Errorf("failed to get aski directory: %v", err)
 	}
-	tmpFile, err := os.CreateTemp(tempDir, "aski-editor-")
+	tmpFile, err := os.CreateTemp(tempDir, "aski-editor-*.txt")
 	if err != nil {
 		return "", false, fmt.Errorf("failed to create a temp file: %v", err)
 	}
@@ -195,6 +195,8 @@ func openEditor(conv conv.Conversation) (string, bool, error) {
 	if err != nil {
 		return "", false, fmt.Errorf("failed to open editor: %v", err)
 	}
+
+	tmpFile.Close()
 
 	content, err := os.ReadFile(tmpFile.Name())
 	if err != nil {
