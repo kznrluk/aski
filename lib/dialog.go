@@ -2,141 +2,164 @@ package lib
 
 import (
 	"bufio"
-	"context"
 	"fmt"
-	"github.com/fatih/color"
+	"github.com/kznrluk/aski/chat"
+	"github.com/kznrluk/aski/command"
 	"github.com/kznrluk/aski/config"
+	"github.com/kznrluk/aski/conv"
 	"github.com/sashabaranov/go-openai"
-	"io"
 	"os"
+	"os/signal"
+	"path/filepath"
+	"strings"
+	"time"
 )
 
-func StartDialog(cfg config.Config, profile config.Profile, ctx []openai.ChatCompletionMessage, isRestMode bool) {
-	oc := openai.NewClient(cfg.OpenAIAPIKey)
-
+func StartDialog(cfg config.Config, profile config.Profile, conv conv.Conversation, isRestMode bool, restored bool) {
 	if isRestMode {
 		fmt.Printf("REST Mode \n")
 	}
 
-	fmt.Printf("%s@%s> ", profile.UserName, profile.ProfileName)
 	reader := bufio.NewReader(os.Stdin)
+	first := !restored
 	for {
-		input, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				break
+		printPrompt(profile)
+
+		input, err, interrupt := getInput(reader)
+		if interrupt || input == ":exit" {
+			if profile.AutoSave && !first {
+				fmt.Printf("\nSaving conversation... ")
+				fn, err := saveConversation(conv)
+				if err != nil {
+					fmt.Printf("\n error saving conversation: %v\n", err)
+					os.Exit(1)
+				}
+				fmt.Println(fn)
 			}
+			os.Exit(0)
+		}
+
+		if err != nil {
 			fmt.Printf("Error Occured: %v\n", err)
 			continue
 		}
 
-		ctx = append(ctx, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleUser,
-			Name:    profile.UserName,
-			Content: input,
-		})
+		if input == "" {
+			continue
+		}
 
-		// fmt.Printf("%v", ctx)
+		input, cont, commandErr := parseCommand(input, conv)
+		if commandErr != nil {
+			fmt.Printf("Command error: %v\n", commandErr)
+		}
 
-		data := ""
-		if isRestMode {
-			d, err := restMode(oc, ctx, profile.Model)
-			if err != nil {
-				fmt.Printf(err.Error())
-				continue
+		if !cont {
+			continue
+		}
+
+		conv.Append(openai.ChatMessageRoleUser, input)
+
+		data, err := chat.RetrieveResponse(isRestMode, cfg, conv, profile.Model)
+		if err != nil {
+			fmt.Printf(err.Error())
+			continue
+		}
+
+		conv.Append(openai.ChatMessageRoleAssistant, data)
+		if first {
+			first = false
+
+			if profile.Summarize {
+				summary := chat.GetSummary(cfg, conv)
+				conv.SetSummary(summary)
 			}
-			data = d
+		}
+	}
+}
+
+func Single(cfg config.Config, profile config.Profile, ctx conv.Conversation, isRestMode bool) (string, error) {
+	data, err := chat.RetrieveResponse(isRestMode, cfg, ctx, profile.Model)
+	if err != nil {
+		fmt.Printf(err.Error())
+		return "", nil
+	}
+
+	return data, nil
+}
+
+func getInput(reader *bufio.Reader) (string, error, bool) {
+	sigintChan := make(chan os.Signal, 1)
+	signal.Notify(sigintChan, os.Interrupt)
+
+	inputChan := make(chan string, 1)
+	go func() {
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			inputChan <- ""
 		} else {
-			d, err := streamMode(oc, ctx, profile.Model)
-			if err != nil {
-				fmt.Printf(err.Error())
-				continue
-			}
-			data = d
+			inputChan <- strings.TrimSpace(input)
 		}
+	}()
 
-		ctx = append(ctx, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleAssistant,
-			Content: data,
-		})
-
-		fmt.Printf("\n\n%s@%s> ", profile.UserName, profile.ProfileName)
+	select {
+	case input := <-inputChan:
+		return input, nil, false
+	case <-sigintChan:
+		return "", nil, true
 	}
 }
 
-func Single(cfg config.Config, profile config.Profile, ctx []openai.ChatCompletionMessage, isRestMode bool) (string, error) {
-	oc := openai.NewClient(cfg.OpenAIAPIKey)
+func saveConversation(conv conv.Conversation) (string, error) {
+	t := time.Now()
+	escapedSummary := ""
+	if conv.GetSummary() != "" {
+		escapedSummary += "_"
+		escapedSummary += cleanFilenameElement(filepath.Clean(conv.GetSummary()))
+	}
+	filename := fmt.Sprintf("%s%s.yaml", t.Format("20060102-150405"), escapedSummary)
 
-	data := ""
-	if isRestMode {
-		d, err := restMode(oc, ctx, profile.Model)
-		if err != nil {
-			fmt.Printf(err.Error())
-			return "", nil
-		}
-		data = d
-	} else {
-		d, err := streamMode(oc, ctx, profile.Model)
-		if err != nil {
-			fmt.Printf(err.Error())
-			return "", nil
-		}
-		data = d
+	configDir, err := config.GetHistoryDir()
+	if err := os.MkdirAll(configDir, 0700); err != nil {
+		return filename, err
 	}
 
-	return data, nil
-}
-
-func restMode(oc *openai.Client, ctx []openai.ChatCompletionMessage, model string) (string, error) {
-	yellow := color.New(color.FgHiYellow).SprintFunc()
-
-	data := ""
-	resp, err := oc.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model:    model,
-			Messages: ctx,
-		},
-	)
-
+	yamlString, err := conv.ToYAML()
 	if err != nil {
-		return "", err
+		return filename, err
 	}
-	fmt.Printf("%s", yellow(resp.Choices[0].Message.Content))
-	data = resp.Choices[0].Message.Content
 
-	return data, nil
+	filePath := filepath.Join(configDir, filename)
+	err = os.WriteFile(filePath, yamlString, 0600)
+	if err != nil {
+		return filename, err
+	}
+
+	return filename, nil
 }
 
-func streamMode(oc *openai.Client, ctx []openai.ChatCompletionMessage, model string) (string, error) {
-	yellow := color.New(color.FgHiYellow).SprintFunc()
-
-	data := ""
-	stream, err := oc.CreateChatCompletionStream(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model:    model,
-			Messages: ctx,
-		},
-	)
-
-	if err != nil {
-		return "", err
+func cleanFilenameElement(input string) string {
+	invalidCharacters := [...]string{"/", "\\", "?", "%", "*", "|", "<", ">"}
+	output := input
+	for _, char := range invalidCharacters {
+		output = strings.Replace(output, char, "-", -1)
 	}
+	return output
+}
 
-	for {
-		resp, err := stream.Recv()
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				return "", err
-			}
+func parseCommand(input string, ctx conv.Conversation) (string, bool, error) {
+	if len(input) > 0 && input[0] == ':' && input != ":exit" {
+		str, cont, commandErr := command.Parse(input, ctx)
+		if commandErr != nil {
+			return "", false, commandErr
 		}
 
-		fmt.Printf("%s", yellow(resp.Choices[0].Delta.Content))
-		data += resp.Choices[0].Delta.Content
+		fmt.Println(str)
+		return str, cont, nil
 	}
 
-	return data, nil
+	return input, true, nil
+}
+
+func printPrompt(profile config.Profile) {
+	fmt.Printf("%s@%s> ", profile.UserName, profile.ProfileName)
 }

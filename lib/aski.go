@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/kznrluk/aski/config"
+	"github.com/kznrluk/aski/conv"
+	"github.com/kznrluk/aski/session"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 	"os"
@@ -28,7 +30,8 @@ func getProfile(cfg config.Config, target string) config.Profile {
 		}
 	}
 	fmt.Printf("WARN: Valid profile not found, using default profile.\n")
-	return config.DefaultProfile()
+	initCfg := config.InitialConfig()
+	return initCfg.Profiles[0]
 }
 
 func isBinary(contents []byte) bool {
@@ -44,8 +47,10 @@ func Aski(cmd *cobra.Command, args []string) {
 	profileTarget, err := cmd.Flags().GetString("profile")
 	isRestMode, _ := cmd.Flags().GetBool("rest")
 	content, _ := cmd.Flags().GetString("content")
-	system, _ := cmd.Flags().GetString("system")
 	fileGlobs, _ := cmd.Flags().GetStringSlice("file")
+	restore, _ := cmd.Flags().GetString("restore")
+	verbose, _ := cmd.Flags().GetBool("verbose")
+	session.SetVerbose(verbose)
 
 	checkAPIKey()
 	cfg, err := config.Init()
@@ -59,81 +64,84 @@ func Aski(cmd *cobra.Command, args []string) {
 
 	prof := getProfile(cfg, profileTarget)
 
-	var ctx []openai.ChatCompletionMessage
-	if system != "" {
-		ctx = append(ctx, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: system,
-		})
+	var ctx conv.Conversation
+	if restore != "" {
+		load, fileName, err := ReadFileFromPWDAndHistoryDir(restore)
+		if err != nil {
+			fmt.Printf("error reading restore file: %v\n", err)
+			os.Exit(1)
+		}
+
+		ctx, err = conv.FromYAML(load)
+		if err != nil {
+			fmt.Printf("error parsing restore file: %v\n", err)
+			os.Exit(1)
+		}
+
+		if len(fileGlobs) != 0 {
+			// TODO: We should be able to renew file contents from the globs
+			fmt.Printf("WARN: File globs are ignored when loading restore.\n")
+		}
+
+		println("Restore conversations from " + fileName)
 	} else {
-		ctx = append(ctx, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: prof.SystemContext,
-		})
-	}
+		ctx = conv.NewConversation(prof)
+		ctx.Append(openai.ChatMessageRoleSystem, prof.SystemContext)
 
-	if len(fileGlobs) != 0 {
-		var fileContents []FileContents
-		for _, arg := range fileGlobs {
-			files, err := filepath.Glob(arg)
-			if err != nil {
-				panic(err)
-			}
-			for _, file := range files {
-				contentsBytes, err := os.ReadFile(file)
-				if err != nil {
-					panic(err)
+		if len(fileGlobs) != 0 {
+			fileContents := getFileContents(fileGlobs)
+			for _, f := range fileContents {
+				if content == "" {
+					fmt.Printf("Append File: %s\n", f.Name)
 				}
-				content := string(contentsBytes)
-				if isBinary(contentsBytes) {
-					continue
-				}
-
-				info, err := os.Stat(file)
-				if err != nil {
-					panic(err)
-				}
-
-				fileContents = append(fileContents, FileContents{
-					Name:     info.Name(),
-					Path:     file,
-					Contents: content,
-					Length:   len(content),
-				})
+				ctx.Append(openai.ChatMessageRoleUser, fmt.Sprintf("Path: `%s`\n ```\n%s```", f.Path, f.Contents))
 			}
 		}
 
-		for _, f := range fileContents {
-			if content == "" {
-				fmt.Printf("Append File: %s\n", f.Name)
-			}
-			ctx = append(ctx, openai.ChatCompletionMessage{
-				Role:    openai.ChatMessageRoleUser,
-				Name:    prof.UserName,
-				Content: fmt.Sprintf("Path: `%s`\n ```\n%s```", f.Path, f.Contents),
-			})
+		for _, i := range prof.UserMessages {
+			ctx.Append(openai.ChatMessageRoleUser, i)
 		}
-	}
-
-	for _, i := range prof.UserMessages {
-		ctx = append(ctx, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleUser,
-			Name:    prof.UserName,
-			Content: i,
-		})
 	}
 
 	if content != "" {
-		ctx = append(ctx, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleUser,
-			Name:    prof.UserName,
-			Content: content,
-		})
-
+		ctx.Append(openai.ChatMessageRoleUser, content)
 		_, _ = Single(cfg, prof, ctx, isRestMode)
 	} else {
-		StartDialog(cfg, prof, ctx, isRestMode)
+		StartDialog(cfg, prof, ctx, isRestMode, restore != "")
 	}
+}
+
+func getFileContents(fileGlobs []string) []FileContents {
+	var fileContents []FileContents
+	for _, arg := range fileGlobs {
+		files, err := filepath.Glob(arg)
+		if err != nil {
+			panic(err)
+		}
+		for _, file := range files {
+			contentsBytes, err := os.ReadFile(file)
+			if err != nil {
+				panic(err)
+			}
+			content := string(contentsBytes)
+			if isBinary(contentsBytes) {
+				continue
+			}
+
+			info, err := os.Stat(file)
+			if err != nil {
+				panic(err)
+			}
+
+			fileContents = append(fileContents, FileContents{
+				Name:     info.Name(),
+				Path:     file,
+				Contents: content,
+				Length:   len(content),
+			})
+		}
+	}
+	return fileContents
 }
 
 func checkAPIKey() {
@@ -143,7 +151,7 @@ func checkAPIKey() {
 	}
 
 	if cfg.OpenAIAPIKey == "" {
-		fmt.Printf("Please generate an API key from this URL. Currently, the configuration file is saved in plaintext. \nhttps://platform.openai.com/account/api-keys\n")
+		fmt.Printf("Please generate an API key from this URL. Headly, the configuration file is saved in plaintext. \nhttps://platform.openai.com/account/api-keys\n")
 		fmt.Printf("\t OpenAI API Key: ")
 		scanner := bufio.NewScanner(os.Stdin)
 		if scanner.Scan() {
