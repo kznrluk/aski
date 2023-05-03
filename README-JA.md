@@ -2,7 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/kznrluk/aski)](https://goreportcard.com/report/github.com/kznrluk/aski)
 
-`aski` は、ターミナルｓでChatGPTを利用できるミニマルなクライアントです。
+`aski` は、ターミナルでChatGPTを利用できるミニマルなクライアントです。
 
 ## 機能
 - Go言語によるマルチプラットフォーム対応 & シングルバイナリ
