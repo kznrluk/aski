@@ -9,6 +9,7 @@ import (
 	"github.com/kznrluk/aski/session"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -52,6 +53,11 @@ func Aski(cmd *cobra.Command, args []string) {
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	session.SetVerbose(verbose)
 
+	fileInfo, _ := os.Stdin.Stat()
+	if (fileInfo.Mode() & os.ModeNamedPipe) != 0 {
+		session.SetIsPipe(true)
+	}
+
 	checkAPIKey()
 	cfg, err := config.Init()
 	if err != nil {
@@ -91,7 +97,7 @@ func Aski(cmd *cobra.Command, args []string) {
 		if len(fileGlobs) != 0 {
 			fileContents := getFileContents(fileGlobs)
 			for _, f := range fileContents {
-				if content == "" {
+				if content == "" && !session.IsPipe() {
 					fmt.Printf("Append File: %s\n", f.Name)
 				}
 				ctx.Append(openai.ChatMessageRoleUser, fmt.Sprintf("Path: `%s`\n ```\n%s```", f.Path, f.Contents))
@@ -103,9 +109,25 @@ func Aski(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	if session.IsPipe() {
+		s, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Printf("error: %s", err.Error())
+			os.Exit(1)
+		}
+		ctx.Append(openai.ChatMessageRoleUser, string(s))
+	}
+
 	if content != "" {
 		ctx.Append(openai.ChatMessageRoleUser, content)
-		_, _ = Single(cfg, prof, ctx, isRestMode)
+	}
+
+	if content != "" || session.IsPipe() {
+		_, err = Single(cfg, prof, ctx, isRestMode)
+		if err != nil {
+			fmt.Printf("error: %s", err.Error())
+			os.Exit(1)
+		}
 	} else {
 		StartDialog(cfg, prof, ctx, isRestMode, restore != "")
 	}

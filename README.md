@@ -91,6 +91,21 @@ $ aski -f *.txt
 $ aski -f hello.txt -f world.txt ...
 ```
 
+## Pipe
+
+aski supports pipe input in *nix based shells.
+
+```
+$ cat test.txt
+What is 
+a pipe in
+Linux?
+
+$ cat test.txt | go run ./main.go
+A pipe in Linux is a concept in UNIX-based operating systems (such as Linux and macOS) that allows you to chain multiple commands together so that the output of one command becomes the input of another.😊
+It is mainly used in shells (bash, zsh, etc.). Pipes use a vertical bar (`|`) to stream data between commands, enabling them to work together efficiently.💻
+```
+
 ## Profiles
 
 By using profiles, you can easily switch between different conversation contexts and settings. Profiles have the following features.

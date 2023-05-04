@@ -3,6 +3,7 @@ package session
 type (
 	globalFlags struct {
 		Verbose bool
+		IsPipe  bool
 	}
 )
 
@@ -14,4 +15,12 @@ func SetVerbose(verbose bool) {
 
 func Verbose() bool {
 	return flags.Verbose
+}
+
+func SetIsPipe(pipe bool) {
+	flags.IsPipe = pipe
+}
+
+func IsPipe() bool {
+	return flags.IsPipe
 }

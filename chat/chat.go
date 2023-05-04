@@ -89,8 +89,6 @@ func GetSummary(cfg config.Config, conv conv.Conversation) string {
 }
 
 func Rest(ctx context.Context, oc *openai.Client, conv conv.Conversation, model string) (string, error) {
-	yellow := color.New(color.FgHiYellow).SprintFunc()
-
 	resp, err := oc.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
@@ -102,13 +100,11 @@ func Rest(ctx context.Context, oc *openai.Client, conv conv.Conversation, model 
 	if err != nil {
 		return "", err
 	}
-	fmt.Printf("%s", yellow(resp.Choices[0].Message.Content))
+	fmt.Printf("%s", resp.Choices[0].Message.Content)
 	return resp.Choices[0].Message.Content, nil
 }
 
 func Stream(ctx context.Context, oc *openai.Client, conv conv.Conversation, model string) (string, error) {
-	yellow := color.New(color.FgHiYellow).SprintFunc()
-
 	stream, err := oc.CreateChatCompletionStream(
 		ctx,
 		openai.ChatCompletionRequest{
@@ -132,7 +128,7 @@ func Stream(ctx context.Context, oc *openai.Client, conv conv.Conversation, mode
 			}
 		}
 
-		fmt.Printf("%s", yellow(resp.Choices[0].Delta.Content))
+		fmt.Printf("%s", resp.Choices[0].Delta.Content)
 		data += resp.Choices[0].Delta.Content
 	}
 
