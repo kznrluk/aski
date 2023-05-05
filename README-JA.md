@@ -1,4 +1,6 @@
-# ASKI - ChatGPT Client for Terminal
+# Aski - ChatGPT Client for Terminal
+
+![using aski](https://raw.githubusercontent.com/kznrluk/aski/main/docs/use.gif)
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/kznrluk/aski)](https://goreportcard.com/report/github.com/kznrluk/aski)
 
@@ -43,6 +45,8 @@ $ aski
 
 ## インラインコマンド
 
+![history copmmand](https://raw.githubusercontent.com/kznrluk/aski/main/docs/history.png)
+
 ```
   :history - 会話履歴を表示します
   :summary - 会話の概要があれば表示します プロファイルでSummarizeがTrueになっている必要があります
@@ -55,6 +59,9 @@ $ aski
 `:exit` 以外のコマンドは、前方一致で検索されます。例えば、`:h` と入力すると `:history` が実行されます。
 
 ## 外部エディタの利用
+
+![external editor](https://raw.githubusercontent.com/kznrluk/aski/main/docs/editor.gif)
+
 コンソールでの入力が難しい改行付きのプロンプトや、長文の入力を行う場合は、外部エディタを使用することができます。
 
 ```
@@ -62,6 +69,8 @@ aski@GPT4> :editor
 ```
 
 EDITOR環境変数に設定されたエディタが起動します。エディタを終了すると、入力された内容がChatGPTに送信されます。Windowsの場合はデフォルトでnotepad、macOS, Linuxの場合はデフォルトでvimが起動します。
+
+また、環境変数をcodeに変更すればVSCodeでも編集できます。
 
 ## ファイルの内容を扱う
 

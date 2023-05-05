@@ -1,4 +1,6 @@
-# ASKI - ChatGPT Client for Terminal
+# Aski - ChatGPT Client for Terminal
+
+![using aski](https://raw.githubusercontent.com/kznrluk/aski/main/docs/use.gif)
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/kznrluk/aski)](https://goreportcard.com/report/github.com/kznrluk/aski)
 
@@ -45,6 +47,9 @@ By default, it uses a generic profile, unless otherwise specified.
 
 ## Inline Commands
 
+![history copmmand](https://raw.githubusercontent.com/kznrluk/aski/main/docs/history.png)
+
+
 ```
   :history - Display the conversation history
   :summary - Display the conversation summary if it exists. Summarize must be set to True in the profile.
@@ -57,6 +62,9 @@ By default, it uses a generic profile, unless otherwise specified.
 All commands except `:exit` are searched by forward match. For example, typing `:h` will execute `:history`.
 
 ## Using an External Editor
+
+![external editor](https://raw.githubusercontent.com/kznrluk/aski/main/docs/editor.gif)
+
 For prompts with line breaks or long input that is difficult to input on the console, you can use an external editor.
 
 ```
@@ -64,6 +72,8 @@ aski@GPT4> :editor
 ```
 
 The editor set in the EDITOR environment variable will start. Once the editor is closed, the content entered will be sent to ChatGPT. The default is notepad on Windows and vim on macOS and Linux.
+
+Additionally, by changing the environment variable to 'code', it is possible to edit using VS Code as well.
 
 ## Handling File Content
 
