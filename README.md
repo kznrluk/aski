@@ -6,7 +6,7 @@
 
 [🇯🇵 README-JA.md here!](https://github.com/kznrluk/aski/blob/main/README-JA.md)
 
-`aski` is a minimal ChatGPT client for the Terminal.
+`aski` is a feature-rich ChatGPT client for the terminal. In addition to regular conversations, it offers various features such as saving and restoring conversation history, moving to and editing arbitrary conversations.
 
 ## Features
 - Written in Go, so it can be used on any platform that supports Go.
