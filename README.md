@@ -117,7 +117,7 @@ What is
 a pipe in
 Linux?
 
-$ cat test.txt | go run ./main.go
+$ cat test.txt | aski
 A pipe in Linux is a concept in UNIX-based operating systems (such as Linux and macOS) that allows you to chain multiple commands together so that the output of one command becomes the input of another.😊
 It is mainly used in shells (bash, zsh, etc.). Pipes use a vertical bar (`|`) to stream data between commands, enabling them to work together efficiently.💻
 ```
