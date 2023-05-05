@@ -1,13 +1,19 @@
 package lib
 
 import (
-	"bufio"
+	"context"
 	"fmt"
 	"github.com/kznrluk/aski/chat"
 	"github.com/kznrluk/aski/command"
 	"github.com/kznrluk/aski/config"
 	"github.com/kznrluk/aski/conv"
+	"github.com/mattn/go-colorable"
 	"github.com/sashabaranov/go-openai"
+	"io"
+
+	"github.com/nyaosorg/go-readline-ny"
+	"github.com/nyaosorg/go-readline-ny/coloring"
+	"github.com/nyaosorg/go-readline-ny/simplehistory"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -20,12 +26,22 @@ func StartDialog(cfg config.Config, profile config.Profile, cv conv.Conversation
 		fmt.Printf("REST Mode \n")
 	}
 
-	reader := bufio.NewReader(os.Stdin)
+	history := simplehistory.New()
+
+	editor := &readline.Editor{
+		PromptWriter: func(w io.Writer) (int, error) {
+			return io.WriteString(w, "\u001B[0m"+profile.UserName+"@"+profile.ProfileName+"> ") // print `$ ` with cyan
+		},
+		Writer:         colorable.NewColorableStdout(),
+		History:        history,
+		Coloring:       &coloring.VimBatch{},
+		HistoryCycling: true,
+	}
+
 	first := !restored
 	for {
-		printPrompt(profile)
-
-		input, err, interrupt := getInput(reader)
+		input, err, interrupt := getInput(editor)
+		history.Add(input)
 		if interrupt || input == ":exit" {
 			if profile.AutoSave && !first {
 				fmt.Printf("\nSaving conversation... ")
@@ -85,13 +101,13 @@ func Single(cfg config.Config, profile config.Profile, ctx conv.Conversation, is
 	return data, nil
 }
 
-func getInput(reader *bufio.Reader) (string, error, bool) {
+func getInput(reader *readline.Editor) (string, error, bool) {
 	sigintChan := make(chan os.Signal, 1)
 	signal.Notify(sigintChan, os.Interrupt)
 
 	inputChan := make(chan string, 1)
 	go func() {
-		input, err := reader.ReadString('\n')
+		input, err := reader.ReadLine(context.Background())
 		if err != nil {
 			inputChan <- ""
 		} else {
