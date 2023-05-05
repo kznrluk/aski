@@ -14,14 +14,19 @@ import (
 )
 
 type Profile struct {
-	ProfileName   string   `yaml:"ProfileName"`
-	UserName      string   `yaml:"UserName"`
-	Current       bool     `yaml:"Current"`
-	AutoSave      bool     `yaml:"AutoSave"`
-	Summarize     bool     `yaml:"Summarize"`
-	SystemContext string   `yaml:"SystemContext"`
-	UserMessages  []string `yaml:"UserMessages"`
-	Model         string   `yaml:"Model"`
+	ProfileName   string       `yaml:"ProfileName"`
+	UserName      string       `yaml:"UserName"`
+	Current       bool         `yaml:"Current"`
+	AutoSave      bool         `yaml:"AutoSave"`
+	Summarize     bool         `yaml:"Summarize"`
+	SystemContext string       `yaml:"SystemContext"`
+	Messages      []PreMessage `yaml:"Messages"`
+	Model         string       `yaml:"Model"`
+}
+
+type PreMessage struct {
+	Role    string `yaml:"Role"`
+	Content string `yaml:"Content"`
 }
 
 type Config struct {
@@ -45,7 +50,7 @@ func InitialConfig() Config {
 				Summarize:     true,
 				SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
 				Model:         openai.GPT3Dot5Turbo,
-				UserMessages:  []string{},
+				Messages:      []PreMessage{},
 			},
 			{
 				ProfileName:   "GPT4",
@@ -55,7 +60,7 @@ func InitialConfig() Config {
 				Summarize:     true,
 				SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
 				Model:         openai.GPT4,
-				UserMessages:  []string{},
+				Messages:      []PreMessage{},
 			},
 			{
 				ProfileName:   "GPT3.5Emoji",
@@ -65,7 +70,12 @@ func InitialConfig() Config {
 				Summarize:     true,
 				SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable. With lot of emojis.",
 				Model:         openai.GPT3Dot5Turbo,
-				UserMessages:  []string{},
+				Messages: []PreMessage{
+					{
+						Role:    openai.ChatMessageRoleUser,
+						Content: "Hi. Nice to meet you.",
+					},
+				},
 			},
 		},
 	}

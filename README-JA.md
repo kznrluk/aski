@@ -141,12 +141,11 @@ LinuxのPipe（パイプ）は、UNIX系オペレーティングシステム（L
 
 **SystemContext**
 
-ChatGPTに送信されるシステムコンテキストです。会話の最初に送信され、どのような会話をしてほしいかをChatGPTに伝えます。
+ChatGPTに送信されるシステムコンテキストです。会話の最も最初に送信され、どのような会話をしてほしいかをChatGPTに伝えます。
 
-**UserMessages**
+**Messages**
 
-ChatGPTに送信されるユーザーコンテキストです。会話の最初に送信されます。SystemContextに含めたくない場合に利用します。
-
+ChatGPTに送信されるコンテキストです。会話の開始前に自動的に送信されます。 `user` 以外にも、 `assistant`、 `system` が利用できます。
 
 UserMessagesやSystemContextに必要なメッセージを追加しておけば、Askiは起動時にそれを読み込み、自動的にChatGPTに伝えます。
 
@@ -171,8 +170,7 @@ Profiles:
       You are a kind and helpful chat AI.
       Sometimes you may say things that are incorrect, but that is unavoidable.
     UserMessages:
-      - |
-        Please use a lot of emojis!
+      - 
 
 ```
 

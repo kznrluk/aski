@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type FileContents struct {
@@ -104,8 +105,17 @@ func Aski(cmd *cobra.Command, args []string) {
 			}
 		}
 
-		for _, i := range prof.UserMessages {
-			ctx.Append(openai.ChatMessageRoleUser, i)
+		for _, i := range prof.Messages {
+			switch strings.ToLower(i.Role) {
+			case openai.ChatMessageRoleSystem:
+				ctx.Append(openai.ChatMessageRoleSystem, i.Content)
+			case openai.ChatMessageRoleUser:
+				ctx.Append(openai.ChatMessageRoleUser, i.Content)
+			case openai.ChatMessageRoleAssistant:
+				ctx.Append(openai.ChatMessageRoleAssistant, i.Content)
+			default:
+				panic(fmt.Errorf("invalid role: %s", i.Role))
+			}
 		}
 	}
 
