@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -83,6 +84,9 @@ func GetSummary(cfg config.Config, conv conv.Conversation) string {
 		fmt.Printf("%s", blue(resp.Choices[0].Delta.Content))
 		data += resp.Choices[0].Delta.Content
 	}
+
+	data = strings.ReplaceAll(data, ".", "")
+	data = strings.ReplaceAll(data, "\"", "")
 
 	fmt.Printf("\n")
 	return data

@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/charmbracelet/glamour"
 	"github.com/fatih/color"
 	"github.com/kznrluk/aski/config"
 	"github.com/kznrluk/aski/conv"
@@ -120,6 +121,11 @@ func changeHead(sha1Partial string, context conv.Conversation) error {
 func showContext(conv conv.Conversation) {
 	yellow := color.New(color.FgHiYellow).SprintFunc()
 	blue := color.New(color.FgHiBlue).SprintFunc()
+
+	r, _ := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+	)
+
 	for _, msg := range conv.GetMessages() {
 		head := ""
 		if msg.Head {
@@ -127,7 +133,12 @@ func showContext(conv conv.Conversation) {
 		}
 		fmt.Printf("%s %s\n", yellow(fmt.Sprintf("%.*s -> %.*s [%s]", 6, msg.Sha1, 6, msg.ParentSha1, msg.Role)), blue(head))
 
-		for _, context := range strings.Split(msg.Content, "\n") {
+		out, err := r.Render(msg.Content)
+		if err != nil {
+			fmt.Printf("error: create markdown failed: %s", err.Error())
+		}
+
+		for _, context := range strings.Split(out, "\n") {
 			fmt.Printf("  %s\n", context)
 		}
 
