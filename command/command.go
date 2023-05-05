@@ -36,7 +36,7 @@ var availableCommands = []cmd{
 	},
 	{
 		name:        ":editor",
-		description: "Open an embedded text editor.",
+		description: "Open an external text editor.",
 	},
 	{
 		name:        ":exit",
