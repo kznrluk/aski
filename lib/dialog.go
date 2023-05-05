@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func StartDialog(cfg config.Config, profile config.Profile, conv conv.Conversation, isRestMode bool, restored bool) {
+func StartDialog(cfg config.Config, profile config.Profile, cv conv.Conversation, isRestMode bool, restored bool) {
 	if isRestMode {
 		fmt.Printf("REST Mode \n")
 	}
@@ -29,7 +29,7 @@ func StartDialog(cfg config.Config, profile config.Profile, conv conv.Conversati
 		if interrupt || input == ":exit" {
 			if profile.AutoSave && !first {
 				fmt.Printf("\nSaving conversation... ")
-				fn, err := saveConversation(conv)
+				fn, err := saveConversation(cv)
 				if err != nil {
 					fmt.Printf("\n error saving conversation: %v\n", err)
 					os.Exit(1)
@@ -48,30 +48,28 @@ func StartDialog(cfg config.Config, profile config.Profile, conv conv.Conversati
 			continue
 		}
 
-		input, cont, commandErr := parseCommand(input, conv)
+		cv, cont, commandErr := appendMessage(input, cv)
 		if commandErr != nil {
-			fmt.Printf("Command error: %v\n", commandErr)
+			fmt.Printf("error: %v\n", commandErr)
 		}
 
 		if !cont {
 			continue
 		}
 
-		conv.Append(openai.ChatMessageRoleUser, input)
-
-		data, err := chat.RetrieveResponse(isRestMode, cfg, conv, profile.Model)
+		data, err := chat.RetrieveResponse(isRestMode, cfg, cv, profile.Model)
 		if err != nil {
 			fmt.Printf(err.Error())
 			continue
 		}
 
-		conv.Append(openai.ChatMessageRoleAssistant, data)
+		cv.Append(openai.ChatMessageRoleAssistant, data)
 		if first {
 			first = false
 
 			if profile.Summarize {
-				summary := chat.GetSummary(cfg, conv)
-				conv.SetSummary(summary)
+				summary := chat.GetSummary(cfg, cv)
+				cv.SetSummary(summary)
 			}
 		}
 	}
@@ -146,18 +144,23 @@ func cleanFilenameElement(input string) string {
 	return output
 }
 
-func parseCommand(input string, ctx conv.Conversation) (string, bool, error) {
+func appendMessage(input string, ctx conv.Conversation) (conv.Conversation, bool, error) {
 	if len(input) > 0 && input[0] == ':' && input != ":exit" {
-		str, cont, commandErr := command.Parse(input, ctx)
+		ctx, cont, commandErr := command.Parse(input, ctx)
 		if commandErr != nil {
-			return "", false, commandErr
+			return ctx, false, commandErr
 		}
 
-		fmt.Println(str)
-		return str, cont, nil
+		if cont {
+			fmt.Print(ctx.Last().Content)
+		}
+
+		return ctx, cont, nil
 	}
 
-	return input, true, nil
+	// no command
+	ctx.Append(openai.ChatMessageRoleUser, input)
+	return ctx, true, nil
 }
 
 func printPrompt(profile config.Profile) {

@@ -14,6 +14,8 @@ import (
 type (
 	Conversation interface {
 		GetMessages() []Message
+		GetMessageFromSha1(sha1partial string) (Message, error)
+		Last() Message
 		MessagesFromHead() []Message
 		SetSummary(summary string)
 		GetSummary() string
@@ -42,6 +44,13 @@ type (
 
 func (c conv) GetMessages() []Message {
 	return c.Messages
+}
+
+func (c conv) Last() Message {
+	if len(c.Messages) == 0 {
+		return Message{}
+	}
+	return c.Messages[len(c.Messages)-1]
 }
 
 func (c *conv) SetSummary(summary string) {
@@ -76,6 +85,15 @@ func (c *conv) Append(role string, message string) {
 	}
 
 	c.Messages = append(c.Messages, msg)
+}
+
+func (c *conv) GetMessageFromSha1(sha1partial string) (Message, error) {
+	for _, message := range c.Messages {
+		if strings.HasPrefix(message.Sha1, sha1partial) {
+			return message, nil
+		}
+	}
+	return Message{}, fmt.Errorf("no message found with provided sha1partial: %s", sha1partial)
 }
 
 func (c *conv) ChangeHead(sha1Partial string) (Message, error) {

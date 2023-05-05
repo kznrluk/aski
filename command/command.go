@@ -6,6 +6,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/kznrluk/aski/config"
 	"github.com/kznrluk/aski/conv"
+	"github.com/sashabaranov/go-openai"
 	"os"
 	"os/exec"
 	"runtime"
@@ -35,8 +36,10 @@ var availableCommands = []cmd{
 		description: "Open configuration directory.",
 	},
 	{
-		name:        ":editor",
-		description: "Open an external text editor.",
+		name: ":editor",
+		description: "Open an external text editor to add new message.\n" +
+			"  :editor sha1 - Open an external text editor to edit a message in the history.\n" +
+			"  :editor HEAD - Open an external text editor to edit a current head message.",
 	},
 	{
 		name:        ":exit",
@@ -64,39 +67,48 @@ func matchCommand(input string) (string, bool) {
 func unknownCommand() string {
 	output := "unknown command.\n\n"
 	for _, cmd := range availableCommands {
-		output += fmt.Sprintf("  %-8s - %s\n", cmd.name, cmd.description)
+		output += fmt.Sprintf("  %-12s - %s\n", cmd.name, cmd.description)
 	}
 
 	return output
 }
 
-func Parse(input string, conv conv.Conversation) (string, bool, error) {
+func Parse(input string, conv conv.Conversation) (conv.Conversation, bool, error) {
 	trimmedInput := strings.TrimSpace(input)
 	commands := strings.Split(trimmedInput, " ")
 
 	matchedCmd, found := matchCommand(commands[0])
 	if !found {
-		return "", false, fmt.Errorf(unknownCommand())
+		return nil, false, fmt.Errorf(unknownCommand())
 	}
 	commands[0] = matchedCmd
 
 	if commands[0] == ":history" {
 		showContext(conv)
-		return "", false, nil
+		return nil, false, nil
 	} else if commands[0] == ":summary" {
 		showSummary(conv)
-		return "", false, nil
+		return nil, false, nil
 	} else if commands[0] == ":move" {
 		err := changeHead(commands[1], conv)
-		return "", false, err
+		return nil, false, err
 	} else if commands[0] == ":config" {
 		_ = config.OpenConfigDir()
-		return "", false, nil
+		return nil, false, nil
 	} else if commands[0] == ":editor" {
-		return openEditor(conv)
+		trim := ""
+		if len(commands) > 1 {
+			trim = strings.TrimSpace(commands[1])
+		}
+
+		if trim == "" {
+			return newMessage(conv)
+		}
+
+		return editMessage(conv, trim)
 	}
 
-	return "", false, fmt.Errorf("unknown command")
+	return nil, false, fmt.Errorf("unknown command")
 }
 
 func changeHead(sha1Partial string, context conv.Conversation) error {
@@ -151,17 +163,7 @@ func showSummary(conv conv.Conversation) {
 	fmt.Printf(blue(conv.GetSummary()))
 }
 
-func openEditor(conv conv.Conversation) (string, bool, error) {
-	tempDir, err := config.GetAskiDir()
-	if err != nil {
-		return "", false, fmt.Errorf("failed to get aski directory: %v", err)
-	}
-	tmpFile, err := os.CreateTemp(tempDir, "aski-editor-*.txt")
-	if err != nil {
-		return "", false, fmt.Errorf("failed to create a temp file: %v", err)
-	}
-	defer os.Remove(tmpFile.Name())
-
+func newMessage(conv conv.Conversation) (conv.Conversation, bool, error) {
 	comments := "\n\n# Save and close editor to continue\n"
 	s := conv.MessagesFromHead()
 	for i := len(s) - 1; i >= 0; i-- {
@@ -178,9 +180,107 @@ func openEditor(conv conv.Conversation) (string, bool, error) {
 		comments += d
 	}
 
-	_, err = tmpFile.WriteString(comments)
+	result, err := openEditor(comments)
 	if err != nil {
-		return "", false, fmt.Errorf("failed to write to the temp file: %v", err)
+		return nil, false, fmt.Errorf("failed to open editor: %v", err)
+	}
+
+	if result == "" {
+		return conv, false, nil
+	}
+
+	conv.Append(openai.ChatMessageRoleUser, result)
+	return conv, true, nil
+}
+
+func editMessage(cv conv.Conversation, sha1 string) (conv.Conversation, bool, error) {
+	trimmedSha1 := strings.TrimSpace(sha1)
+	if trimmedSha1 == "" {
+		return nil, false, fmt.Errorf("no SHA1 provided")
+	}
+
+	var msg conv.Message
+	if strings.ToLower(trimmedSha1) == "head" {
+		for _, m := range cv.GetMessages() {
+			if m.Head {
+				msg = m
+				break
+			}
+		}
+
+		if msg.Sha1 == "" {
+			return nil, false, fmt.Errorf("no head found") // maybe never happens
+		}
+	} else {
+		m, err := cv.GetMessageFromSha1(trimmedSha1)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to edit message from SHA1: %v", err)
+		}
+		msg = m
+	}
+
+	s := cv.MessagesFromHead()
+	comments := msg.Content + "\n\n# Save and close editor to continue\n"
+	for i := len(s) - 1; i >= 0; i-- {
+		if msg.Sha1 == s[i].Sha1 {
+			continue // skip the message we want to edit
+		}
+
+		m := s[i]
+		head := ""
+		if m.Head {
+			head = "Head"
+		}
+
+		d := fmt.Sprintf("#\n# %.*s -> %.*s [%s] %s\n", 6, m.Sha1, 6, m.ParentSha1, m.Role, head)
+		for _, context := range strings.Split(m.Content, "\n") {
+			d += fmt.Sprintf("#   %s\n", context)
+		}
+		comments += d
+	}
+
+	result, err := openEditor(comments)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to open editor: %v", err)
+	}
+
+	if result == "" {
+		return cv, false, nil
+	}
+
+	if strings.TrimSpace(result) == strings.TrimSpace(msg.Content) {
+		return cv, false, nil
+	}
+
+	_, err = cv.ChangeHead(msg.ParentSha1)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to change head: %v", err)
+	}
+
+	cv.Append(msg.Role, result)
+
+	if msg.Role != openai.ChatMessageRoleUser {
+		fmt.Printf("Note: You have edited your %s's message. Please add your message as a user or send it as is.\n", msg.Role)
+		return nil, false, nil
+	}
+
+	return cv, true, nil
+}
+
+func openEditor(content string) (string, error) {
+	tempDir, err := config.GetAskiDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get aski directory: %v", err)
+	}
+	tmpFile, err := os.CreateTemp(tempDir, "aski-editor-*.txt")
+	if err != nil {
+		return "", fmt.Errorf("failed to create a temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	_, err = tmpFile.WriteString(content)
+	if err != nil {
+		return "", fmt.Errorf("failed to write to the temp file: %v", err)
 	}
 
 	editor := os.Getenv("EDITOR")
@@ -204,18 +304,18 @@ func openEditor(conv conv.Conversation) (string, bool, error) {
 
 	err = cmd.Run()
 	if err != nil {
-		return "", false, fmt.Errorf("failed to open editor: %v", err)
+		return "", fmt.Errorf("failed to open editor: %v", err)
 	}
 
 	tmpFile.Close()
 
-	content, err := os.ReadFile(tmpFile.Name())
+	rawContent, err := os.ReadFile(tmpFile.Name())
 	if err != nil {
-		return "", false, fmt.Errorf("failed to read the edited content: %v", err)
+		return "", fmt.Errorf("failed to read the edited content: %v", err)
 	}
 
 	result := ""
-	for _, d := range strings.Split(string(content), "\n") {
+	for _, d := range strings.Split(string(rawContent), "\n") {
 		trimmed := strings.TrimSpace(d)
 		if !strings.HasPrefix(d, "#") && trimmed != "\n" {
 			result += d + "\n"
@@ -223,8 +323,8 @@ func openEditor(conv conv.Conversation) (string, bool, error) {
 	}
 
 	if len(strings.TrimSpace(result)) == 0 {
-		return "", false, nil
+		return "", nil
 	}
 
-	return result, true, nil
+	return result, nil
 }
