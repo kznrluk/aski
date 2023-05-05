@@ -51,12 +51,18 @@ By default, it uses a generic profile, unless otherwise specified.
 
 
 ```
-  :history - Display the conversation history
-  :summary - Display the conversation summary if it exists. Summarize must be set to True in the profile.
-  :move    - Specify the parent message for the next post in the conversation.
-  :config  - Opens the folder containing the configuration, profiles, and history.
-  :editor  - Use an external editor
-  :exit    - Exit the program
+> :
+
+  :history       - Show conversation history.
+  :summary       - Show conversation summary.
+  :move          - Change HEAD to another message.
+  :config        - Open configuration directory.
+  :editor        - Open an external text editor to add new message.
+  :editor sha1   - Edit the argument message and continue the conversation.
+  :editor latest - Edits the nearest own statement from HEAD.
+  :modify sha1   - Modify the past conversation. HEAD does not move.
+                   Past conversations will be modified from the next transmission.
+  :exit          - Exit the program.
 ```
 
 All commands except `:exit` are searched by forward match. For example, typing `:h` will execute `:history`.
@@ -162,7 +168,13 @@ Profiles:
     AutoSave: true
     Summarize: true
     SystemContext: You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.
-    UserMessages: []
+    Messages:
+      - Role: user
+        Content: Hi, nice to meet you!
+      - Role: assistant
+        Content: Hi, What's your name?
+      - Role: user
+        Content: My name is Aski.
   - ProfileName: Emoji
     UserName: AskiUser
     Model: gpt-3.5-turbo
@@ -172,9 +184,11 @@ Profiles:
     SystemContext: |
       You are a kind and helpful chat AI.
       Sometimes you may say things that are incorrect, but that is unavoidable.
-    UserMessages:
-      - |
-        Please use a lot of emojis!
+    Messages:
+      - Role: user
+        Content: Please use a lot of emojis!
+      - Role: assistant
+        Content: Ok! I will use a lot of emojis!
 ```
 
 SystemContext is always sent first, followed by UserMessages. If a file is specified, the file information will be attached between the SystemContext and UserMessages.

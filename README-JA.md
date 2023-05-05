@@ -48,12 +48,18 @@ $ aski
 ![history copmmand](https://raw.githubusercontent.com/kznrluk/aski/main/docs/history.png)
 
 ```
-  :history - 会話履歴を表示します
-  :summary - 会話の概要があれば表示します プロファイルでSummarizeがTrueになっている必要があります
-  :move    - 次に投稿する会話の親となるメッセージを指定します。
-  :config  - 設定やプロファイル、履歴の含まれているフォルダを開きます。
-  :editor  - 外部エディタを利用します
-  :exit    - プログラムを終了します
+> :
+
+  :history       - 会話の履歴を表示します。
+  :summary       - 会話の概要を表示します。
+  :move          - 別のメッセージへのHEADを変更します。
+  :config        - 設定ディレクトリを開きます。
+  :editor        - 新しいメッセージを追加するために外部テキストエディタを開きます。
+  :editor sha1   - 引数のメッセージを編集し、会話を続けます。
+  :editor latest - HEADから一番近い自分の発言を編集します。
+  :modify sha1   - 過去の会話を変更します。HEADは移動しません。
+                   次回送信から過去の会話が変更されます。
+  :exit          - プログラムを終了します。
 ```
 
 `:exit` 以外のコマンドは、前方一致で検索されます。例えば、`:h` と入力すると `:history` が実行されます。
@@ -159,7 +165,13 @@ Profiles:
     AutoSave: true
     Summarize: true
     SystemContext: You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.
-    UserMessages: []
+    Messages:
+      - Role: user
+        Content: Hi, nice to meet you!
+      - Role: assistant
+        Content: Hi, What's your name?
+      - Role: user
+        Content: My name is Aski.
   - ProfileName: Emoji
     UserName: AskiUser
     Model: gpt-3.5-turbo
@@ -169,9 +181,11 @@ Profiles:
     SystemContext: |
       You are a kind and helpful chat AI.
       Sometimes you may say things that are incorrect, but that is unavoidable.
-    UserMessages:
-      - 
-
+    Messages:
+      - Role: user
+        Content: Please use a lot of emojis!
+      - Role: assistant
+        Content: Ok! I will use a lot of emojis!
 ```
 
 SystemContextは常に最初に送信され、UserMessagesはその次に送信されます。ファイルを指定した際はSystemContextとUserMessagesの間にファイルの情報が添付されます。

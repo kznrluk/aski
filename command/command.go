@@ -38,8 +38,13 @@ var availableCommands = []cmd{
 	{
 		name: ":editor",
 		description: "Open an external text editor to add new message.\n" +
-			"  :editor sha1 - Open an external text editor to edit a message in the history.\n" +
-			"  :editor HEAD - Open an external text editor to edit a current head message.",
+			"  :editor sha1   - Edit the argument message and continue the conversation.\n" +
+			"  :editor latest - Edits the nearest own statement from HEAD.",
+	},
+	{
+		name: ":modify sha1",
+		description: "Modify the past conversation. HEAD does not move.\n" +
+			"                   Past conversations will be modified from the next transmission.",
 	},
 	{
 		name:        ":exit",
@@ -67,7 +72,7 @@ func matchCommand(input string) (string, bool) {
 func unknownCommand() string {
 	output := "unknown command.\n\n"
 	for _, cmd := range availableCommands {
-		output += fmt.Sprintf("  %-12s - %s\n", cmd.name, cmd.description)
+		output += fmt.Sprintf("  %-14s - %s\n", cmd.name, cmd.description)
 	}
 
 	return output
@@ -106,6 +111,8 @@ func Parse(input string, conv conv.Conversation) (conv.Conversation, bool, error
 		}
 
 		return editMessage(conv, trim)
+	} else if commands[0] == ":modify sha1" {
+		return modifyMessage(conv, commands[1])
 	}
 
 	return nil, false, fmt.Errorf("unknown command")
@@ -193,6 +200,57 @@ func newMessage(conv conv.Conversation) (conv.Conversation, bool, error) {
 	return conv, true, nil
 }
 
+func modifyMessage(cv conv.Conversation, sha1 string) (conv.Conversation, bool, error) {
+	trimmedSha1 := strings.TrimSpace(sha1)
+	if trimmedSha1 == "" {
+		return nil, false, fmt.Errorf("no SHA1 provided")
+	}
+
+	msg, err := cv.GetMessageFromSha1(trimmedSha1)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to edit message from SHA1: %v", err)
+	}
+
+	s := cv.MessagesFromHead()
+	comments := msg.Content + "\n\n# Save and close editor to continue\n"
+	for i := len(s) - 1; i >= 0; i-- {
+		m := s[i]
+		head := ""
+		if m.Head {
+			head = "Head"
+		}
+
+		d := fmt.Sprintf("#\n# %.*s -> %.*s [%s] %s\n", 6, m.Sha1, 6, m.ParentSha1, m.Role, head)
+		for _, context := range strings.Split(m.Content, "\n") {
+			d += fmt.Sprintf("#   %s\n", context)
+		}
+		comments += d
+	}
+
+	result, err := openEditor(comments)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to open editor: %v", err)
+	}
+
+	if result == "" {
+		return cv, false, nil
+	}
+
+	if strings.TrimSpace(result) == strings.TrimSpace(msg.Content) {
+		return cv, false, nil
+	}
+
+	msg.Content = result
+
+	err = cv.Modify(msg)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to modify message: %v", err)
+	}
+
+	fmt.Printf("[%s] Modified. \n", msg.Sha1)
+	return cv, false, nil
+}
+
 func editMessage(cv conv.Conversation, sha1 string) (conv.Conversation, bool, error) {
 	trimmedSha1 := strings.TrimSpace(sha1)
 	if trimmedSha1 == "" {
@@ -200,32 +258,34 @@ func editMessage(cv conv.Conversation, sha1 string) (conv.Conversation, bool, er
 	}
 
 	var msg conv.Message
-	if strings.ToLower(trimmedSha1) == "head" {
-		for _, m := range cv.GetMessages() {
-			if m.Head {
-				msg = m
+	if strings.ToLower(trimmedSha1) == "latest" {
+		msgs := cv.MessagesFromHead()
+		for i := len(msgs) - 1; i >= 0; i-- {
+			if msgs[i].Role == openai.ChatMessageRoleUser {
+				msg = msgs[i]
 				break
 			}
 		}
 
 		if msg.Sha1 == "" {
-			return nil, false, fmt.Errorf("no head found") // maybe never happens
+			return nil, false, fmt.Errorf("no latest user message found")
 		}
 	} else {
 		m, err := cv.GetMessageFromSha1(trimmedSha1)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to edit message from SHA1: %v", err)
 		}
+
+		if m.Role != openai.ChatMessageRoleUser {
+			return nil, false, fmt.Errorf("cannot edit non-user message")
+		}
+
 		msg = m
 	}
 
 	s := cv.MessagesFromHead()
 	comments := msg.Content + "\n\n# Save and close editor to continue\n"
 	for i := len(s) - 1; i >= 0; i-- {
-		if msg.Sha1 == s[i].Sha1 {
-			continue // skip the message we want to edit
-		}
-
 		m := s[i]
 		head := ""
 		if m.Head {
@@ -258,12 +318,6 @@ func editMessage(cv conv.Conversation, sha1 string) (conv.Conversation, bool, er
 	}
 
 	cv.Append(msg.Role, result)
-
-	if msg.Role != openai.ChatMessageRoleUser {
-		fmt.Printf("Note: You have edited your %s's message. Please add your message as a user or send it as is.\n", msg.Role)
-		return nil, false, nil
-	}
-
 	return cv, true, nil
 }
 

@@ -20,6 +20,7 @@ type (
 		SetSummary(summary string)
 		GetSummary() string
 		Append(role string, message string)
+		Modify(m Message) error
 		ToChatCompletionMessage() []openai.ChatCompletionMessage
 		ChangeHead(sha string) (Message, error)
 		ToYAML() ([]byte, error)
@@ -59,6 +60,17 @@ func (c *conv) SetSummary(summary string) {
 
 func (c conv) GetSummary() string {
 	return c.Summary
+}
+
+func (c *conv) Modify(m Message) error {
+	for i, message := range c.Messages {
+		if message.Sha1 == m.Sha1 {
+			c.Messages[i] = m
+			return nil
+		}
+	}
+
+	return fmt.Errorf("no message found with provided sha1: %s", m.Sha1)
 }
 
 func (c *conv) Append(role string, message string) {
