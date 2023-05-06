@@ -19,7 +19,7 @@ type (
 		MessagesFromHead() []Message
 		SetSummary(summary string)
 		GetSummary() string
-		Append(role string, message string)
+		Append(role string, message string) Message
 		Modify(m Message) error
 		ToChatCompletionMessage() []openai.ChatCompletionMessage
 		ChangeHead(sha string) (Message, error)
@@ -73,7 +73,7 @@ func (c *conv) Modify(m Message) error {
 	return fmt.Errorf("no message found with provided sha1: %s", m.Sha1)
 }
 
-func (c *conv) Append(role string, message string) {
+func (c *conv) Append(role string, message string) Message {
 	parent := "ROOT"
 	for i, m := range c.Messages {
 		if m.Head {
@@ -97,6 +97,8 @@ func (c *conv) Append(role string, message string) {
 	}
 
 	c.Messages = append(c.Messages, msg)
+
+	return msg
 }
 
 func (c *conv) GetMessageFromSha1(sha1partial string) (Message, error) {
@@ -211,6 +213,12 @@ func FromYAML(yamlBytes []byte) (Conversation, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode tab escape sequences
+	for i, message := range c.Messages {
+		c.Messages[i].Content = strings.ReplaceAll(message.Content, "\\t", "\t")
+	}
+
 	return &c, nil
 }
 

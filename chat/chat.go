@@ -121,6 +121,7 @@ func Stream(ctx context.Context, oc *openai.Client, conv conv.Conversation, mode
 		return "", err
 	}
 
+	fmt.Printf("\n")
 	data := ""
 	for {
 		resp, err := stream.Recv()
@@ -135,8 +136,7 @@ func Stream(ctx context.Context, oc *openai.Client, conv conv.Conversation, mode
 		fmt.Printf("%s", resp.Choices[0].Delta.Content)
 		data += resp.Choices[0].Delta.Content
 	}
-
-	fmt.Printf("\n\n")
+	fmt.Printf("\n")
 	return data, nil
 }
 

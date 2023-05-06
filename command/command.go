@@ -129,7 +129,7 @@ func changeHead(sha1Partial string, context conv.Conversation) error {
 
 	yellow := color.New(color.FgHiYellow).SprintFunc()
 	blue := color.New(color.FgHiBlue).SprintFunc()
-	fmt.Printf("%s %s\n", yellow(fmt.Sprintf("%.*s [%s]", 6, msg.Sha1, msg.Role)), blue("Head"))
+	fmt.Printf("%s %s\n", yellow(yellow(fmt.Sprintf("%.*s [%s] -> %.*s", 6, msg.Sha1, msg.Role, 6, msg.ParentSha1))), blue("Head"))
 	for _, context := range strings.Split(msg.Content, "\n") {
 		fmt.Printf("  %s\n", context)
 	}
@@ -150,7 +150,7 @@ func showContext(conv conv.Conversation) {
 		if msg.Head {
 			head = "Head"
 		}
-		fmt.Printf("%s %s\n", yellow(fmt.Sprintf("%.*s -> %.*s [%s]", 6, msg.Sha1, 6, msg.ParentSha1, msg.Role)), blue(head))
+		fmt.Printf("%s %s\n", yellow(fmt.Sprintf("%.*s [%s] -> %.*s", 6, msg.Sha1, msg.Role, 6, msg.ParentSha1)), blue(head))
 
 		out, err := r.Render(msg.Content)
 		if err != nil {
@@ -247,7 +247,7 @@ func modifyMessage(cv conv.Conversation, sha1 string) (conv.Conversation, bool, 
 		return nil, false, fmt.Errorf("failed to modify message: %v", err)
 	}
 
-	fmt.Printf("[%s] Modified. \n", msg.Sha1)
+	fmt.Printf("[%.6s] Modified. \n", msg.Sha1)
 	return cv, false, nil
 }
 
@@ -370,12 +370,11 @@ func openEditor(content string) (string, error) {
 
 	result := ""
 	for _, d := range strings.Split(string(rawContent), "\n") {
-		trimmed := strings.TrimSpace(d)
-		if !strings.HasPrefix(d, "#") && trimmed != "\n" {
+		if !strings.HasPrefix(d, "#") {
 			result += d + "\n"
 		}
 	}
-
+	result = strings.TrimSpace(result)
 	if len(strings.TrimSpace(result)) == 0 {
 		return "", nil
 	}

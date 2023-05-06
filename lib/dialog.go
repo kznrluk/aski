@@ -3,6 +3,7 @@ package lib
 import (
 	"context"
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/kznrluk/aski/chat"
 	"github.com/kznrluk/aski/command"
 	"github.com/kznrluk/aski/config"
@@ -42,7 +43,7 @@ func StartDialog(cfg config.Config, profile config.Profile, cv conv.Conversation
 	for {
 		input, err, interrupt := getInput(editor)
 		history.Add(input)
-		if interrupt || input == ":exit" {
+		if interrupt || strings.HasPrefix(input, ":ex") {
 			if profile.AutoSave && !first {
 				fmt.Printf("\nSaving conversation... ")
 				fn, err := saveConversation(cv)
@@ -73,13 +74,21 @@ func StartDialog(cfg config.Config, profile config.Profile, cv conv.Conversation
 			continue
 		}
 
+		messages := cv.MessagesFromHead()
+		if len(messages) > 0 {
+			lastMessage := messages[len(messages)-1]
+			showPendingHeader(openai.ChatMessageRoleAssistant, lastMessage)
+		}
+
 		data, err := chat.RetrieveResponse(isRestMode, cfg, cv, profile.Model)
 		if err != nil {
 			fmt.Printf(err.Error())
 			continue
 		}
 
-		cv.Append(openai.ChatMessageRoleAssistant, data)
+		msg := cv.Append(openai.ChatMessageRoleAssistant, data)
+
+		showMessageMeta(msg)
 		if first {
 			first = false
 
@@ -168,17 +177,27 @@ func appendMessage(input string, ctx conv.Conversation) (conv.Conversation, bool
 		}
 
 		if cont {
-			fmt.Print(ctx.Last().Content)
+			msg := ctx.Last()
+			showMessageMeta(msg)
+			fmt.Println(msg.Content)
 		}
 
 		return ctx, cont, nil
 	}
 
-	// no command
-	ctx.Append(openai.ChatMessageRoleUser, input)
+	// direct send message
+	msg := ctx.Append(openai.ChatMessageRoleUser, input)
+	showMessageMeta(msg)
+
 	return ctx, true, nil
 }
 
-func printPrompt(profile config.Profile) {
-	fmt.Printf("%s@%s> ", profile.UserName, profile.ProfileName)
+func showPendingHeader(role string, to conv.Message) {
+	yellow := color.New(color.FgHiYellow).SprintFunc()
+	fmt.Print(yellow(fmt.Sprintf("\n------ [%s] -> %.*s", role, 6, to.Sha1)))
+}
+
+func showMessageMeta(msg conv.Message) {
+	yellow := color.New(color.FgHiYellow).SprintFunc()
+	fmt.Print(yellow(fmt.Sprintf("%.*s [%s] -> %.*s\n", 6, msg.Sha1, msg.Role, 6, msg.ParentSha1)))
 }
