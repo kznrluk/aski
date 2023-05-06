@@ -143,6 +143,7 @@ func showContext(conv conv.Conversation) {
 
 	r, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(100),
 	)
 
 	for _, msg := range conv.GetMessages() {
@@ -157,8 +158,9 @@ func showContext(conv conv.Conversation) {
 			fmt.Printf("error: create markdown failed: %s", err.Error())
 		}
 
+		out = strings.TrimSpace(out)
 		for _, context := range strings.Split(out, "\n") {
-			fmt.Printf("  %s\n", context)
+			fmt.Printf("%s\n", context)
 		}
 
 		fmt.Printf("\n")
