@@ -178,7 +178,6 @@ func appendMessage(input string, ctx conv.Conversation) (conv.Conversation, bool
 
 		if cont {
 			msg := ctx.Last()
-			showMessageMeta(msg)
 			fmt.Println(msg.Content)
 		}
 
@@ -186,8 +185,7 @@ func appendMessage(input string, ctx conv.Conversation) (conv.Conversation, bool
 	}
 
 	// direct send message
-	msg := ctx.Append(openai.ChatMessageRoleUser, input)
-	showMessageMeta(msg)
+	ctx.Append(openai.ChatMessageRoleUser, input)
 
 	return ctx, true, nil
 }
