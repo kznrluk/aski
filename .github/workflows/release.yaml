@@ -49,6 +49,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         name: ${{ github.event.inputs.version }}
+        tag_name: ${{ github.event.inputs.version }}
         files: |
           aski_windows_amd64.exe
           aski_darwin_arm64
