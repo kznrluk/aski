@@ -166,7 +166,7 @@ UserMessagesやSystemContextに必要なメッセージを追加しておけば�
 ChatGPTに送信する際に使用されるパラメーターを上書きします。キーが指定されていないかゼロ値の場合、APIによるデフォルト値が利用されます。
 利用可能なパラメータはChatGPTのAPIリファレンスを参照してください。通常の利用では変更する必要はありません。また、パラメーター `N` の変更には現在のところ対応していません。
 
-(API Reference - OpenAI API)[https://platform.openai.com/docs/api-reference/chat/create]
+[API Reference - OpenAI API](https://platform.openai.com/docs/api-reference/chat/create)
 
 ```yaml
 OpenAIAPIKey:

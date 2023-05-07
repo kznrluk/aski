@@ -168,7 +168,7 @@ By adding the required messages to UserMessages and SystemContext, Aski will rea
 These parameters overwrite the ones used when sending data to ChatGPT. If a key is not specified or has a zero value, the default value provided by the API will be used.
 Please refer to the ChatGPT API Reference for the available parameters. In general, there is no need to modify these parameters. Additionally, the program currently does not support changing the `N` parameter.
 
-(API Reference - OpenAI API)[https://platform.openai.com/docs/api-reference/chat/create]
+[API Reference - OpenAI API](https://platform.openai.com/docs/api-reference/chat/create)
 
 ```yaml
 OpenAIAPIKey:
