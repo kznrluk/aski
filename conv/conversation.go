@@ -20,15 +20,16 @@ type (
 		SetSummary(summary string)
 		GetSummary() string
 		Append(role string, message string) Message
+		SetProfile(profile config.Profile) error
 		Modify(m Message) error
 		ToChatCompletionMessage() []openai.ChatCompletionMessage
 		ChangeHead(sha string) (Message, error)
+		GetProfile() config.Profile
 		ToYAML() ([]byte, error)
 	}
 
 	conv struct {
-		UserName string
-		Model    string
+		Profile  config.Profile
 		Summary  string
 		Messages []Message
 	}
@@ -93,7 +94,7 @@ func (c *conv) Append(role string, message string) Message {
 	}
 
 	if role == openai.ChatMessageRoleUser {
-		msg.UserName = c.UserName
+		msg.UserName = c.Profile.UserName
 	}
 
 	c.Messages = append(c.Messages, msg)
@@ -198,10 +199,18 @@ func (c conv) ToYAML() ([]byte, error) {
 	return yamlBytes, nil
 }
 
+func (c conv) GetProfile() config.Profile {
+	return c.Profile
+}
+
+func (c *conv) SetProfile(profile config.Profile) error {
+	c.Profile = profile
+	return nil
+}
+
 func NewConversation(profile config.Profile) Conversation {
 	return &conv{
-		UserName: profile.UserName,
-		Model:    profile.Model,
+		Profile:  profile,
 		Summary:  "",
 		Messages: []Message{},
 	}

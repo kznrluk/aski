@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -45,6 +46,11 @@ var availableCommands = []cmd{
 		name: ":modify sha1",
 		description: "Modify the past conversation. HEAD does not move.\n" +
 			"                   Past conversations will be modified from the next transmission.",
+	},
+	{
+		name: ":param",
+		description: "Update profile custom parameter values.\n" +
+			"                   There is no need to change it for normal use.",
 	},
 	{
 		name:        ":exit",
@@ -113,6 +119,21 @@ func Parse(input string, conv conv.Conversation) (conv.Conversation, bool, error
 		return editMessage(conv, trim)
 	} else if commands[0] == ":modify sha1" {
 		return modifyMessage(conv, commands[1])
+	} else if commands[0] == ":param" {
+		if len(commands) < 3 {
+			if len(commands) == 2 {
+				displayParameterValue(conv.GetProfile().CustomParameters, commands[1])
+				return conv, false, nil
+			}
+			fmt.Printf(customParametersDescription())
+			return nil, false, nil
+		}
+
+		cv, err := setProfileCustomParamValue(conv, commands[1], commands[2])
+		if err != nil {
+			return nil, false, err
+		}
+		return cv, false, err
 	}
 
 	return nil, false, fmt.Errorf("unknown command")
@@ -382,4 +403,162 @@ func openEditor(content string) (string, error) {
 	}
 
 	return result, nil
+}
+
+func setProfileCustomParamValue(conv conv.Conversation, paramName, paramValue string) (conv.Conversation, error) {
+	targetProfile := conv.GetProfile()
+
+	matchedParam := ""
+	matched := false
+	for _, param := range []string{"temperature", "stop", "logit_bias", "max_tokens", "top_p", "presence_penalty", "frequency_penalty"} {
+		if strings.HasPrefix(param, paramName) {
+			if matched {
+				return nil, fmt.Errorf("ambiguous parameter name: %s", paramName)
+			}
+			matched = true
+			matchedParam = param
+		}
+	}
+
+	if !matched {
+		return nil, fmt.Errorf("unknown custom parameter: %s", paramName)
+	}
+
+	switch matchedParam {
+	case "temperature":
+		newValue, err := strconv.ParseFloat(paramValue, 32)
+		if err != nil {
+			return nil, err
+		}
+		targetProfile.CustomParameters.Temperature = float32(newValue)
+	case "stop":
+		if len(paramValue) == 0 {
+			targetProfile.CustomParameters.Stop = []string{}
+		} else {
+			stopValues := strings.Split(paramValue, ",")
+			if len(stopValues) > 4 {
+				return nil, fmt.Errorf("too many stop values provided, maximum 4 allowed")
+			}
+			targetProfile.CustomParameters.Stop = stopValues
+		}
+	case "logit_bias":
+		return nil, fmt.Errorf("logit_bias can only be set via the profile")
+	case "max_tokens":
+		newValue, err := strconv.Atoi(paramValue)
+		if err != nil {
+			return nil, err
+		}
+		targetProfile.CustomParameters.MaxTokens = newValue
+	case "top_p":
+		newValue, err := strconv.ParseFloat(paramValue, 32)
+		if err != nil {
+			return nil, err
+		}
+		targetProfile.CustomParameters.TopP = float32(newValue)
+	// case "n":
+	// newValue, err := strconv.Atoi(paramValue)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// targetProfile.CustomParameters.N = newValue
+	case "presence_penalty":
+		newValue, err := strconv.ParseFloat(paramValue, 32)
+		if err != nil {
+			return nil, err
+		}
+		targetProfile.CustomParameters.PresencePenalty = float32(newValue)
+	case "frequency_penalty":
+		newValue, err := strconv.ParseFloat(paramValue, 32)
+		if err != nil {
+			return nil, err
+		}
+		targetProfile.CustomParameters.FrequencyPenalty = float32(newValue)
+	default:
+		return nil, fmt.Errorf("unknown custom parameter: %s", paramName)
+	}
+
+	// Validation.
+	err := config.ValidateCustomParameters(targetProfile.CustomParameters)
+	if err != nil {
+		return nil, fmt.Errorf("validation error: %v", err)
+	}
+
+	conv.SetProfile(targetProfile)
+	displayParameterValue(conv.GetProfile().CustomParameters, matchedParam)
+	return conv, nil
+}
+
+func customParametersDescription() string {
+	return `Usage: :param <parameter_name> <parameter_value>
+
+Available parameters:
+  temperature       - What sampling temperature to use (0 to 2)
+  top_p             - Nucleus sampling (tokens with top_p probability mass)
+  stop              - Up to 4 sequences where the API will stop (comma-separated)
+  max_tokens        - Maximum number of tokens to generate
+  presence_penalty  - Penalize new tokens based on existing text
+  frequency_penalty - Penalize new tokens based on frequency in text
+
+If parameter_value is not provided, the current parameter value will be displayed. Use 0 to default.
+`
+}
+func displayParameterValue(cp config.CustomParameters, paramName string) {
+	matchedParam := ""
+	matched := false
+	for _, param := range []string{"temperature", "stop", "logit_bias", "max_tokens", "top_p", "presence_penalty", "frequency_penalty"} {
+		if strings.HasPrefix(param, paramName) {
+			if matched {
+				fmt.Printf("ambiguous parameter name: %s\n", paramName)
+				return
+			}
+			matched = true
+			matchedParam = param
+		}
+	}
+	if !matched {
+		fmt.Printf("unknown custom parameter: %s", paramName)
+		return
+	}
+
+	switch matchedParam {
+	case "temperature":
+		if cp.Temperature == 0.0 {
+			fmt.Printf("Current temperature value: API Default\n")
+			return
+		}
+		fmt.Printf("Current temperature value: %.2f\n", cp.Temperature)
+	case "top_p":
+		if cp.TopP == 0.0 {
+			fmt.Printf("Current top_p value: API Default\n")
+			return
+		}
+		fmt.Printf("Current top_p value: %.2f\n", cp.TopP)
+	//case "n":
+	//	fmt.Printf("Current value: %d\n", cp.N)
+	case "stop":
+		if len(cp.Stop) == 0 {
+			fmt.Printf("Current stop values: API Default\n")
+			return
+		}
+		fmt.Printf("Current stop values: %v\n", cp.Stop)
+	case "max_tokens":
+		if cp.MaxTokens == 0 {
+			fmt.Printf("Current max_tokens value: API Default\n")
+		}
+		fmt.Printf("Current max_tokens value: %d\n", cp.MaxTokens)
+	case "presence_penalty":
+		if cp.PresencePenalty == 0 {
+			fmt.Printf("Current presence_penalty value: API Default\n")
+			return
+		}
+		fmt.Printf("Current presence_penalty value: %.2f\n", cp.PresencePenalty)
+	case "frequency_penalty":
+		if cp.FrequencyPenalty == 0 {
+			fmt.Printf("Current frequency_penalty value: API Default\n")
+			return
+		}
+		fmt.Printf("Current frequency_penalty value: %.2f\n", cp.FrequencyPenalty)
+	default:
+		fmt.Printf("Unknown parameter: %s\n%s", paramName, customParametersDescription())
+	}
 }

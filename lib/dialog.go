@@ -80,7 +80,7 @@ func StartDialog(cfg config.Config, profile config.Profile, cv conv.Conversation
 			showPendingHeader(openai.ChatMessageRoleAssistant, lastMessage)
 		}
 
-		data, err := chat.RetrieveResponse(isRestMode, cfg, cv, profile.Model)
+		data, err := chat.RetrieveResponse(isRestMode, cfg, cv)
 		if err != nil {
 			fmt.Printf(err.Error())
 			continue
@@ -100,8 +100,8 @@ func StartDialog(cfg config.Config, profile config.Profile, cv conv.Conversation
 	}
 }
 
-func Single(cfg config.Config, profile config.Profile, ctx conv.Conversation, isRestMode bool) (string, error) {
-	data, err := chat.RetrieveResponse(isRestMode, cfg, ctx, profile.Model)
+func Single(cfg config.Config, ctx conv.Conversation, isRestMode bool) (string, error) {
+	data, err := chat.RetrieveResponse(isRestMode, cfg, ctx)
 	if err != nil {
 		fmt.Printf(err.Error())
 		return "", nil

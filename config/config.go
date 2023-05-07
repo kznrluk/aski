@@ -14,14 +14,28 @@ import (
 )
 
 type Profile struct {
-	ProfileName   string       `yaml:"ProfileName"`
-	UserName      string       `yaml:"UserName"`
-	Current       bool         `yaml:"Current"`
-	AutoSave      bool         `yaml:"AutoSave"`
-	Summarize     bool         `yaml:"Summarize"`
-	SystemContext string       `yaml:"SystemContext"`
-	Messages      []PreMessage `yaml:"Messages"`
-	Model         string       `yaml:"Model"`
+	ProfileName      string           `yaml:"ProfileName"`
+	UserName         string           `yaml:"UserName"`
+	Current          bool             `yaml:"Current"`
+	AutoSave         bool             `yaml:"AutoSave"`
+	Summarize        bool             `yaml:"Summarize"`
+	SystemContext    string           `yaml:"SystemContext"`
+	Messages         []PreMessage     `yaml:"Messages"`
+	Model            string           `yaml:"Model"`
+	CustomParameters CustomParameters `yaml:"CustomParameters,omitempty"`
+}
+
+// CustomParameters - When these parameters are specified, they will be overwritten during transmission.
+type CustomParameters struct {
+	MaxTokens   int     `yaml:"max_tokens,omitempty"`
+	Temperature float32 `yaml:"temperature,omitempty"`
+	TopP        float32 `yaml:"top_p,omitempty"`
+	// N is fixed at 1 currently
+	// N                int            `yaml:"n,omitempty"`
+	Stop             []string       `yaml:"stop,omitempty"`
+	PresencePenalty  float32        `yaml:"presence_penalty,omitempty"`
+	FrequencyPenalty float32        `yaml:"frequency_penalty,omitempty"`
+	LogitBias        map[string]int `yaml:"logit_bias,omitempty"`
 }
 
 type PreMessage struct {
