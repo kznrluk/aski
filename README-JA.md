@@ -17,7 +17,11 @@
 - Streaming APIとREST APIのサポート
 
 ## インストール
-今のところ `go install` のみに対応しています。
+リリースページからバイナリをダウンロードできます。
+
+[Releases · kznrluk/aski](https://github.com/kznrluk/aski/releases)
+
+もしくは `go install` コマンドを実行してください。
 
 ```
 go install github.com/kznrluk/aski@main
