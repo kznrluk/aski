@@ -12,7 +12,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -21,59 +20,6 @@ type FileContents struct {
 	Path     string
 	Contents string
 	Length   int
-}
-
-func getProfile(cfg config.Config, target string) config.Profile {
-	var p config.Profile
-	found := false
-	for _, profile := range cfg.Profiles {
-		if target != "" && profile.ProfileName == target {
-			found = true
-			p = profile
-		}
-		if target == "" && profile.Current {
-			found = true
-			p = profile
-		}
-	}
-
-	if !found {
-		fmt.Printf("WARN: Valid profile not found, using default profile.\n")
-		initCfg := config.InitialConfig()
-		return initCfg.Profiles[0]
-	}
-
-	if err := validateProfile(p); err != nil {
-		fmt.Printf("ERROR: Invalid profile: %s\n", err)
-		os.Exit(1)
-	}
-	return p
-}
-
-func validateProfile(profile config.Profile) error {
-	if profile.ProfileName == "" {
-		return fmt.Errorf("ProfileName must not be empty")
-	}
-	if len(profile.UserName) > 16 || !regexp.MustCompile("^[a-zA-Z0-9]+$").MatchString(profile.UserName) {
-		return fmt.Errorf("UserName must be alphanumeric and no more than 8 characters")
-	}
-	if profile.SystemContext == "" {
-		return fmt.Errorf("SystemContext must not be empty")
-	}
-	if profile.Model == "" {
-		return fmt.Errorf("Model must not be empty")
-	}
-
-	for _, message := range profile.Messages {
-		if message.Role == "" {
-			return fmt.Errorf("Message Role must not be empty")
-		}
-		if message.Content == "" {
-			return fmt.Errorf("Message Content must not be empty")
-		}
-	}
-
-	return nil
 }
 
 func isBinary(contents []byte) bool {
@@ -109,7 +55,7 @@ func Aski(cmd *cobra.Command, args []string) {
 		profileTarget = ""
 	}
 
-	prof := getProfile(cfg, profileTarget)
+	prof := config.GetProfile(cfg, profileTarget)
 
 	var ctx conv.Conversation
 	if restore != "" {
@@ -173,7 +119,7 @@ func Aski(cmd *cobra.Command, args []string) {
 	}
 
 	if content != "" || session.IsPipe() {
-		_, err = Single(cfg, prof, ctx, isRestMode)
+		_, err = Single(cfg, ctx, isRestMode)
 		if err != nil {
 			fmt.Printf("error: %s", err.Error())
 			os.Exit(1)

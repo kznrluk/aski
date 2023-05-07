@@ -14,15 +14,15 @@ import (
 	"syscall"
 )
 
-func RetrieveResponse(isRestMode bool, cfg config.Config, ctx conv.Conversation, model string) (string, error) {
+func RetrieveResponse(isRestMode bool, cfg config.Config, conv conv.Conversation) (string, error) {
 	cancelCtx, cancelFunc := createCancellableContext()
 	defer cancelFunc()
 
 	oc := openai.NewClient(cfg.OpenAIAPIKey)
 	if isRestMode {
-		return Rest(cancelCtx, oc, ctx, model)
+		return Rest(cancelCtx, oc, conv)
 	}
-	return Stream(cancelCtx, oc, ctx, model)
+	return Stream(cancelCtx, oc, conv)
 }
 
 func GetSummary(cfg config.Config, conv conv.Conversation) string {
@@ -92,12 +92,21 @@ func GetSummary(cfg config.Config, conv conv.Conversation) string {
 	return data
 }
 
-func Rest(ctx context.Context, oc *openai.Client, conv conv.Conversation, model string) (string, error) {
+func Rest(ctx context.Context, oc *openai.Client, conv conv.Conversation) (string, error) {
+	profile := conv.GetProfile()
+	customParams := profile.CustomParameters
 	resp, err := oc.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model:    model,
-			Messages: conv.ToChatCompletionMessage(),
+			Model:            profile.Model,
+			Messages:         conv.ToChatCompletionMessage(),
+			MaxTokens:        customParams.MaxTokens,
+			Temperature:      customParams.Temperature,
+			TopP:             customParams.TopP,
+			Stop:             customParams.Stop,
+			PresencePenalty:  customParams.PresencePenalty,
+			FrequencyPenalty: customParams.FrequencyPenalty,
+			LogitBias:        customParams.LogitBias,
 		},
 	)
 
@@ -108,12 +117,21 @@ func Rest(ctx context.Context, oc *openai.Client, conv conv.Conversation, model 
 	return resp.Choices[0].Message.Content, nil
 }
 
-func Stream(ctx context.Context, oc *openai.Client, conv conv.Conversation, model string) (string, error) {
+func Stream(ctx context.Context, oc *openai.Client, conv conv.Conversation) (string, error) {
+	profile := conv.GetProfile()
+	customParams := profile.CustomParameters
 	stream, err := oc.CreateChatCompletionStream(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model:    model,
-			Messages: conv.ToChatCompletionMessage(),
+			Model:            profile.Model,
+			Messages:         conv.ToChatCompletionMessage(),
+			MaxTokens:        customParams.MaxTokens,
+			Temperature:      customParams.Temperature,
+			TopP:             customParams.TopP,
+			Stop:             customParams.Stop,
+			PresencePenalty:  customParams.PresencePenalty,
+			FrequencyPenalty: customParams.FrequencyPenalty,
+			LogitBias:        customParams.LogitBias,
 		},
 	)
 

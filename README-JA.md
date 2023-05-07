@@ -63,6 +63,8 @@ $ aski
   :editor latest - HEADから一番近い自分の発言を編集します。
   :modify sha1   - 過去の会話を変更します。HEADは移動しません。
                    次回送信から過去の会話が変更されます。
+  :param         - プロファイルのカスタムパラメータの値を確認したり書き換えたりします。
+                   通常の使用では変更する必要はありません。
   :exit          - プログラムを終了します。
 ```
 
@@ -159,6 +161,13 @@ ChatGPTに送信されるコンテキストです。会話の開始前に自動�
 
 UserMessagesやSystemContextに必要なメッセージを追加しておけば、Askiは起動時にそれを読み込み、自動的にChatGPTに伝えます。
 
+**CustomParameters**
+
+ChatGPTに送信する際に使用されるパラメーターを上書きします。キーが指定されていないかゼロ値の場合、APIによるデフォルト値が利用されます。
+利用可能なパラメータはChatGPTのAPIリファレンスを参照してください。通常の利用では変更する必要はありません。また、パラメーター `N` の変更には現在のところ対応していません。
+
+(API Reference - OpenAI API)[https://platform.openai.com/docs/api-reference/chat/create]
+
 ```yaml
 OpenAIAPIKey:
 Profiles:
@@ -190,6 +199,9 @@ Profiles:
         Content: Please use a lot of emojis!
       - Role: assistant
         Content: Ok! I will use a lot of emojis!
+    CustomParameters:
+      temperature: 1
+      stop: ["hello"]
 ```
 
 SystemContextは常に最初に送信され、UserMessagesはその次に送信されます。ファイルを指定した際はSystemContextとUserMessagesの間にファイルの情報が添付されます。
