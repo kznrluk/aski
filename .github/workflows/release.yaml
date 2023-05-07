@@ -1,0 +1,56 @@
+name: Go Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Go 1.20
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.20
+
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Configure Git
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+
+    - name: Create and push tag
+      run: |
+        git tag "${{ github.event.inputs.version }}"
+        git push origin "${{ github.event.inputs.version }}"
+
+    - name: Build for Windows
+      run: |
+        GOOS=windows GOARCH=amd64 go build -o aski_windows_amd64.exe
+
+    - name: Build for ARM64 macOS
+      run: |
+        GOOS=darwin GOARCH=arm64 go build -o aski_darwin_arm64
+
+    - name: Build for AMD64 macOS
+      run: |
+        GOOS=darwin GOARCH=amd64 go build -o aski_darwin_amd64
+
+    - name: Build for Linux
+      run: |
+        GOOS=linux GOARCH=amd64 go build -o aski_linux_amd64
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      name: ${{ github.event.inputs.version }}
+      with:
+        files: |
+          aski_windows_amd64.exe
+          aski_darwin_arm64
+          aski_darwin_amd64
+          aski_linux_amd64
