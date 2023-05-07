@@ -62,6 +62,8 @@ By default, it uses a generic profile, unless otherwise specified.
   :editor latest - Edits the nearest own statement from HEAD.
   :modify sha1   - Modify the past conversation. HEAD does not move.
                    Past conversations will be modified from the next transmission.
+  :param         - Check or overwrite the values of custom parameters in the profile.
+                   It is not necessary to change them in general use.
   :exit          - Exit the program.
 ```
 
@@ -154,9 +156,8 @@ The system context that will be sent to ChatGPT. It is sent at the beginning of 
 
 **UserMessages**
 
-The user context that will be sent to ChatGPT. It is sent at the beginning of the conversation. Use it when you don't want to include information in the SystemContext.
-
-By adding the required messages to UserMessages and SystemContext, Aski will read them at startup and automatically communicate them to ChatGPT.
+These parameters overwrite the ones used when sending data to ChatGPT. If a key is not specified or has a zero value, the default value provided by the API will be used. Please refer to the ChatGPT API Reference for the available parameters. 
+In general, there is no need to modify these parameters. Additionally, the program currently does not support changing the `N` parameter.
 
 ```yaml
 OpenAIAPIKey:
@@ -189,6 +190,9 @@ Profiles:
         Content: Please use a lot of emojis!
       - Role: assistant
         Content: Ok! I will use a lot of emojis!
+    CustomParameters:
+      temperature: 1
+      stop: ["hello"]
 ```
 
 SystemContext is always sent first, followed by UserMessages. If a file is specified, the file information will be attached between the SystemContext and UserMessages.
