@@ -128,7 +128,17 @@ A pipe in Linux is a concept in UNIX-based operating systems (such as Linux and 
 It is mainly used in shells (bash, zsh, etc.). Pipes use a vertical bar (`|`) to stream data between commands, enabling them to work together efficiently.💻
 ```
 
-## Configuration
+## Configuration and conversation history
+The files used by aski are basically located in the `.aski` directory directly under the home directory.
+
+- Windows: `C:\Users\your_name\.aski`
+- macOS: `/Users/your_name/.aski`.
+- Linux: `/home/your_name/.aski`.
+
+Configuration and conversation logs are saved as YAML files. You can edit them with a text editor and change the behavior to your liking.
+
+### Configuration File
+
 The configuration file includes the current profile and OpenAI API key. Profiles are stored as YAML files in the `profile` directory.
 
 ```yaml
@@ -136,7 +146,7 @@ OpenAIAPIKey: sk-Bs.....................
 CurrentProfile: gpt4.yaml
 ```
 
-## Profiles
+### Profiles
 
 By using profiles, you can easily switch between different conversation contexts and settings. Profiles have the following features.
 
