@@ -3,35 +3,127 @@ package config
 import (
 	"errors"
 	"fmt"
+	"github.com/goccy/go-yaml"
+	"github.com/sashabaranov/go-openai"
+	"io"
 	"os"
+	"os/user"
+	"path/filepath"
 	"regexp"
+	"strings"
 )
 
-func GetProfile(cfg Config, target string) Profile {
-	var p Profile
-	found := false
-	for _, profile := range cfg.Profiles {
-		if target != "" && profile.ProfileName == target {
-			found = true
-			p = profile
-		}
-		if target == "" && profile.Current {
-			found = true
-			p = profile
+func GetProfile(cfg Config, overload string) (Profile, error) {
+	if !hasDefaultProfile() {
+		err := CreateInitialProfileFile()
+		if err != nil {
+			return Profile{}, fmt.Errorf("cannot create initial profile file: %s", err)
 		}
 	}
+	// We called hasDefaultProfile() above, so we know that the default profile exists
+	profileDir := MustGetProfileDir()
+	toSearchPaths := createToSearchPaths(profileDir, cfg, overload)
 
-	if !found {
-		fmt.Printf("WARN: Valid profile not found, using default profile.\n")
-		initCfg := InitialConfig()
-		return initCfg.Profiles[0]
+	for _, target := range toSearchPaths {
+		if _, err := os.Stat(target); os.IsNotExist(err) {
+			continue
+		}
+
+		profileFile, err := os.Open(target)
+		if err != nil {
+			return Profile{}, fmt.Errorf("cannot open profile file: %s", err)
+		}
+		defer profileFile.Close()
+
+		profileBytes, err := io.ReadAll(profileFile)
+		if err != nil {
+			return Profile{}, fmt.Errorf("cannot read profile file: %s", err)
+		}
+
+		var profile Profile
+		err = yaml.Unmarshal(profileBytes, &profile)
+		if err != nil {
+			return Profile{}, fmt.Errorf("cannot parse profile file: %s", err)
+		}
+
+		// Validate the loaded profile
+		if err := validateProfile(profile); err != nil {
+			return Profile{}, fmt.Errorf("invalid profile %s: %s", target, err)
+		}
+
+		return profile, nil
 	}
 
-	if err := validateProfile(p); err != nil {
-		fmt.Printf("ERROR: Invalid profile: %s\n", err)
-		os.Exit(1)
+	return Profile{}, fmt.Errorf("profile file not found, tried: %s", strings.Join(toSearchPaths, ", "))
+}
+
+func createToSearchPaths(profileDir string, cfg Config, overload string) []string {
+	toSearchPaths := []string{}
+	if overload == "" {
+		// Use the profile specified in the config file
+		toSearchPaths = append(toSearchPaths, filepath.Join(profileDir, cfg.CurrentProfile))
+	} else {
+		// Current directory
+		toSearchPaths = append(toSearchPaths, overload)
+
+		// Profile directory
+		if !(strings.Contains(overload, "/") || strings.Contains(overload, "\\")) {
+			if strings.HasSuffix(overload, ".yaml") || strings.HasSuffix(overload, ".yml") {
+				toSearchPaths = append(toSearchPaths, filepath.Join(profileDir, overload))
+			} else {
+				toSearchPaths = append(toSearchPaths, filepath.Join(profileDir, overload+".yaml"))
+				toSearchPaths = append(toSearchPaths, filepath.Join(profileDir, overload+".yml"))
+			}
+		}
 	}
-	return p
+	return toSearchPaths
+}
+
+func hasDefaultProfile() bool {
+	profileDir := MustGetProfileDir()
+	defaultProfilePath := filepath.Join(profileDir, "default.yaml")
+	if _, err := os.Stat(defaultProfilePath); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func CreateInitialProfileFile() error {
+	askiDir := MustGetAskiDir()
+
+	profileDir := filepath.Join(askiDir, "profile")
+	if err := os.MkdirAll(profileDir, 0700); err != nil {
+		return err
+	}
+
+	profileData, err := yaml.Marshal(InitialProfile())
+	if err != nil {
+		return err
+	}
+
+	profilePath := filepath.Join(profileDir, GetDefaultProfileFileName())
+	err = os.WriteFile(profilePath, profileData, 0700)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func InitialProfile() Profile {
+	currentUser, err := user.Current()
+	if err != nil {
+		currentUser.Username = "aski"
+	}
+	return Profile{
+		ProfileName:   "GPT3.5",
+		UserName:      currentUser.Username,
+		AutoSave:      true,
+		Summarize:     true,
+		SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
+		Model:         openai.GPT3Dot5Turbo,
+		Messages:      []PreMessage{},
+	}
 }
 
 func validateProfile(profile Profile) error {

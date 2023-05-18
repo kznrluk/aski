@@ -46,16 +46,16 @@ func Aski(cmd *cobra.Command, args []string) {
 	}
 
 	checkAPIKey()
-	cfg, err := config.Init()
+	cfg, err := config.GetConfig()
 	if err != nil {
 		panic(err)
 	}
 
+	prof, err := config.GetProfile(cfg, profileTarget)
 	if err != nil {
-		profileTarget = ""
+		fmt.Printf("error getting profile: %v\n. using default profile.", err)
+		prof = config.InitialProfile()
 	}
-
-	prof := config.GetProfile(cfg, profileTarget)
 
 	var ctx conv.Conversation
 	if restore != "" {
@@ -167,7 +167,7 @@ func getFileContents(fileGlobs []string) []FileContents {
 }
 
 func checkAPIKey() {
-	cfg, err := config.Init()
+	cfg, err := config.GetConfig()
 	if err != nil {
 		panic(err)
 	}

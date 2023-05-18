@@ -345,10 +345,7 @@ func editMessage(cv conv.Conversation, sha1 string) (conv.Conversation, bool, er
 }
 
 func openEditor(content string) (string, error) {
-	tempDir, err := config.GetAskiDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get aski directory: %v", err)
-	}
+	tempDir := config.MustGetAskiDir()
 	tmpFile, err := os.CreateTemp(tempDir, "aski-editor-*.txt")
 	if err != nil {
 		return "", fmt.Errorf("failed to create a temp file: %v", err)

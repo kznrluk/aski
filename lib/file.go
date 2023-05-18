@@ -9,10 +9,7 @@ import (
 )
 
 func ReadFileFromPWDAndHistoryDir(partialFilename string) ([]byte, string, error) {
-	str, err := config.GetHistoryDir()
-	if err != nil {
-		return nil, "", err
-	}
+	str := config.MustGetHistoryDir()
 
 	dirsToSearch := []string{".", filepath.Join(str, "")}
 

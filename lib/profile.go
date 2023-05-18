@@ -6,38 +6,39 @@ import (
 	"github.com/kznrluk/aski/config"
 	"github.com/spf13/cobra"
 	"os"
+	"strings"
 )
 
 func ChangeProfile(cmd *cobra.Command, args []string) {
-	cfg, err := config.Init()
+	cfg, err := config.GetConfig()
 	if err != nil {
 		panic(err)
 	}
 
-	profiles := cfg.Profiles
+	profileDir := config.MustGetProfileDir()
 
-	strs := []string{}
-	for _, p := range profiles {
-		strs = append(strs, fmt.Sprintf("%s", p.ProfileName))
+	var yamlFiles []string
+
+	fileInfo, err := os.ReadDir(profileDir)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, file := range fileInfo {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".yaml") && file.Name() != "config.yaml" {
+			yamlFiles = append(yamlFiles, file.Name())
+		}
 	}
 
 	var selected string
 	prompt := &survey.Select{
 		Message: "Choose one option:",
-		Options: strs,
+		Options: yamlFiles,
 	}
 
 	_ = survey.AskOne(prompt, &selected)
 
-	for i, p := range profiles {
-		if selected == p.ProfileName {
-			profiles[i].Current = true
-		} else {
-			profiles[i].Current = false
-		}
-	}
-
-	cfg.Profiles = profiles
+	cfg.CurrentProfile = selected
 
 	if err := config.Save(cfg); err != nil {
 		fmt.Printf("Error: %s", err.Error())

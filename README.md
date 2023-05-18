@@ -40,12 +40,13 @@ By default, it uses a generic profile, unless otherwise specified.
 ## Options
 
 ```
-- `-h, --help`: Displays help message.
-- `-p, --profile`: Choose the profile to use for this conversation. Profiles are defined in the .aski/config.yaml file.
-- `-f, --file`: Specifies a file to send with the conversation.
-- `-c, --content`: Outputs the answer for the content of the argument without using the interactive mode and ends the program. Useful for integration with other applications.
-- `-r, --restore`: Restores the conversation history from a history file. With this option, you can continue a previous conversation. Forward match.
-- `--rest`: Communicate with the REST API. Useful when streaming is unstable or appropriate responses cannot be received.
+- `-h, --help`    : Displays help message.
+- `-p, --profile` : Choose the profile to use for this conversation.
+                    You can specify the file name in the .aski/profiles directory or directly specify a YAML file in any location.
+- `-f, --file`    : Specifies a file to send with the conversation.
+- `-c, --content` : Outputs the answer for the content of the argument without using the interactive mode and ends the program. Useful for integration with other applications.
+- `-r, --restore` : Restores the conversation history from a history file. With this option, you can continue a previous conversation. Forward match.
+- `--rest`        : Communicate with the REST API. Useful when streaming is unstable or appropriate responses cannot be received.
 ```
 
 ## Inline Commands
@@ -127,6 +128,14 @@ A pipe in Linux is a concept in UNIX-based operating systems (such as Linux and 
 It is mainly used in shells (bash, zsh, etc.). Pipes use a vertical bar (`|`) to stream data between commands, enabling them to work together efficiently.💻
 ```
 
+## Configuration
+The configuration file includes the current profile and OpenAI API key. Profiles are stored as YAML files in the `profile` directory.
+
+```yaml
+OpenAIAPIKey: sk-Bs.....................
+CurrentProfile: gpt4.yaml
+```
+
 ## Profiles
 
 By using profiles, you can easily switch between different conversation contexts and settings. Profiles have the following features.
@@ -140,10 +149,6 @@ The username. It will be sent as the sender of the messages sent to ChatGPT.
 The name of the model you want to use. It must be a valid value that can be used with the OpenAI API.
 
 [Models - OpenAI API](https://platform.openai.com/docs/models/chatgpt)
-
-**Current**
-
-Indicates whether the profile is currently active. Profiles set to true will be used.
 
 **AutoSave**
 
@@ -171,39 +176,22 @@ Please refer to the ChatGPT API Reference for the available parameters. In gener
 [API Reference - OpenAI API](https://platform.openai.com/docs/api-reference/chat/create)
 
 ```yaml
-OpenAIAPIKey:
-Profiles:
-  - ProfileName: Default
-    UserName: AskiUser
-    Model: gpt-3.5-turbo
-    Current: true
-    AutoSave: true
-    Summarize: true
-    SystemContext: You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.
-    Messages:
-      - Role: user
-        Content: Hi, nice to meet you!
-      - Role: assistant
-        Content: Hi, What's your name?
-      - Role: user
-        Content: My name is Aski.
-  - ProfileName: Emoji
-    UserName: AskiUser
-    Model: gpt-3.5-turbo
-    Current: false
-    AutoSave: true
-    Summarize: true
-    SystemContext: |
-      You are a kind and helpful chat AI.
-      Sometimes you may say things that are incorrect, but that is unavoidable.
-    Messages:
-      - Role: user
-        Content: Please use a lot of emojis!
-      - Role: assistant
-        Content: Ok! I will use a lot of emojis!
-    CustomParameters:
-      temperature: 1
-      stop: ["hello"]
+ProfileName: Default
+UserName: AskiUser
+Model: gpt-3.5-turbo
+AutoSave: true
+Summarize: true
+SystemContext: You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.
+Messages:
+  - Role: user
+    Content: Hi, nice to meet you!
+  - Role: assistant
+    Content: Hi, What's your name?
+  - Role: user
+    Content: My name is Aski.
+CustomParameters:
+  temperature: 1
+  stop: ["hello"]
 ```
 
 SystemContext is always sent first, followed by UserMessages. If a file is specified, the file information will be attached between the SystemContext and UserMessages.

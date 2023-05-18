@@ -39,12 +39,13 @@ $ aski
 ## オプション
 
 ```
-- `-h, --help`: ヘルプメッセージを表示します。
-- `-p, --profile`: この会話で使用するプロファイルを選択します。プロファイルは、.aski/config.yamlファイルで定義されます。
-- `-f, --file`: 会話とともに送信するファイルを指定します。
-- `-c, --content`: 対話モードを利用せず、引数のコンテンツの回答を出力してプログラムを終了します。他アプリケーションとの連携に便利です。
-- `-r, --restore`: 会話履歴をヒストリファイルから復元します。このオプションを使用すると、以前の会話を続けることができます。前方一致。
-- `--rest`: REST APIで通信します。ストリーミングが不安定な場合や、適切な応答が受信できない場合に便利です。
+- `-h, --help`    : ヘルプメッセージを表示します。
+- `-p, --profile` : この会話で使用するプロファイルを選択します。
+                    プロファイルは.aski/profilesディレクトリ内のファイル名を指定するか、任意の場所のYAMLファイルを直接指定することができます。
+- `-f, --file`    : 会話とともに送信するファイルを指定します。
+- `-c, --content` : 対話モードを利用せず、引数のコンテンツの回答を出力してプログラムを終了します。他アプリケーションとの連携に便利です。
+- `-r, --restore` : 会話履歴をヒストリファイルから復元します。このオプションを使用すると、以前の会話を続けることができます。前方一致。
+- `--rest`        : REST APIで通信します。ストリーミングが不安定な場合や、適切な応答が受信できない場合に便利です。
 ```
 
 ## インラインコマンド
@@ -125,6 +126,14 @@ LinuxのPipe（パイプ）は、UNIX系オペレーティングシステム（L
 主にシェル（bash, zsh, etc.）で使用されます。パイプは、縦棒 (`|`) を使ってコマンド間でデータをストリーム化して連携させます。💻
 ```
 
+## コンフィグ
+コンフィグファイルには、現在のプロファイルとOpenAI APIキーが含まれています。プロファイルは `profile` ディレクトリに保存されているyamlファイルです。
+
+```yaml
+OpenAIAPIKey: sk-Bs.....................
+CurrentProfile: gpt4.yaml
+```
+
 ## プロファイル
 
 プロファイルを使用することで、異なる会話コンテキストや設定簡単に切り替えることができます。プロファイルには、以下の機能があります。
@@ -138,10 +147,6 @@ LinuxのPipe（パイプ）は、UNIX系オペレーティングシステム（L
 使用するモデルの名前です。OpenAIのAPIで利用できる値である必要があります。
 
 [Models - OpenAI API](https://platform.openai.com/docs/models/chatgpt)
-
-**Current**
-
-現在のプロファイルかどうかを示します。trueに設定されているプロファイルが使用されます。
 
 **AutoSave**
 
@@ -169,39 +174,22 @@ ChatGPTに送信する際に使用されるパラメーターを上書きしま�
 [API Reference - OpenAI API](https://platform.openai.com/docs/api-reference/chat/create)
 
 ```yaml
-OpenAIAPIKey:
-Profiles:
-  - ProfileName: Default
-    UserName: AskiUser
-    Model: gpt-3.5-turbo
-    Current: true
-    AutoSave: true
-    Summarize: true
-    SystemContext: You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.
-    Messages:
-      - Role: user
-        Content: Hi, nice to meet you!
-      - Role: assistant
-        Content: Hi, What's your name?
-      - Role: user
-        Content: My name is Aski.
-  - ProfileName: Emoji
-    UserName: AskiUser
-    Model: gpt-3.5-turbo
-    Current: false
-    AutoSave: true
-    Summarize: true
-    SystemContext: |
-      You are a kind and helpful chat AI.
-      Sometimes you may say things that are incorrect, but that is unavoidable.
-    Messages:
-      - Role: user
-        Content: Please use a lot of emojis!
-      - Role: assistant
-        Content: Ok! I will use a lot of emojis!
-    CustomParameters:
-      temperature: 1
-      stop: ["hello"]
+ProfileName: Default
+UserName: AskiUser
+Model: gpt-3.5-turbo
+AutoSave: true
+Summarize: true
+SystemContext: You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.
+Messages:
+  - Role: user
+    Content: Hi, nice to meet you!
+  - Role: assistant
+    Content: Hi, What's your name?
+  - Role: user
+    Content: My name is Aski.
+CustomParameters:
+  temperature: 1
+  stop: ["hello"]
 ```
 
 SystemContextは常に最初に送信され、UserMessagesはその次に送信されます。ファイルを指定した際はSystemContextとUserMessagesの間にファイルの情報が添付されます。

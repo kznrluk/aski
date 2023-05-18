@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/goccy/go-yaml"
-	"github.com/sashabaranov/go-openai"
 	"io"
 	"os"
 	"os/exec"
@@ -15,13 +14,12 @@ import (
 
 type Profile struct {
 	ProfileName      string           `yaml:"ProfileName"`
+	Model            string           `yaml:"Model"`
 	UserName         string           `yaml:"UserName"`
-	Current          bool             `yaml:"Current"`
 	AutoSave         bool             `yaml:"AutoSave"`
 	Summarize        bool             `yaml:"Summarize"`
 	SystemContext    string           `yaml:"SystemContext"`
 	Messages         []PreMessage     `yaml:"Messages"`
-	Model            string           `yaml:"Model"`
 	CustomParameters CustomParameters `yaml:"CustomParameters,omitempty"`
 }
 
@@ -44,8 +42,16 @@ type PreMessage struct {
 }
 
 type Config struct {
-	OpenAIAPIKey string    `yaml:"OpenAIAPIKey"`
-	Profiles     []Profile `yaml:"Profiles"`
+	OpenAIAPIKey   string `yaml:"OpenAIAPIKey"`
+	CurrentProfile string `yaml:"CurrentProfile"`
+
+	// Profiles is no longer being used.
+	// It will remain for a while so that the user's settings are not lost.
+	Profiles []Profile `yaml:"Profiles"`
+}
+
+func GetDefaultProfileFileName() string {
+	return "default.yaml"
 }
 
 func InitialConfig() Config {
@@ -54,44 +60,8 @@ func InitialConfig() Config {
 		currentUser.Username = "aski"
 	}
 	return Config{
-		OpenAIAPIKey: "",
-		Profiles: []Profile{
-			{
-				ProfileName:   "GPT3.5",
-				UserName:      currentUser.Username,
-				Current:       true,
-				AutoSave:      true,
-				Summarize:     true,
-				SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
-				Model:         openai.GPT3Dot5Turbo,
-				Messages:      []PreMessage{},
-			},
-			{
-				ProfileName:   "GPT4",
-				UserName:      currentUser.Username,
-				Current:       true,
-				AutoSave:      true,
-				Summarize:     true,
-				SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
-				Model:         openai.GPT4,
-				Messages:      []PreMessage{},
-			},
-			{
-				ProfileName:   "GPT3.5Emoji",
-				UserName:      currentUser.Username,
-				Current:       false,
-				AutoSave:      true,
-				Summarize:     true,
-				SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable. With lot of emojis.",
-				Model:         openai.GPT3Dot5Turbo,
-				Messages: []PreMessage{
-					{
-						Role:    openai.ChatMessageRoleUser,
-						Content: "Hi. Nice to meet you.",
-					},
-				},
-			},
-		},
+		OpenAIAPIKey:   "",
+		CurrentProfile: GetDefaultProfileFileName(),
 	}
 }
 
@@ -101,41 +71,43 @@ func GetHomeDir() (string, error) {
 	} else if home := os.Getenv("USERPROFILE"); home != "" {
 		return home, nil
 	} else {
-		return "", fmt.Errorf("cannot find home directory")
+		return "", fmt.Errorf("failed to get home directory, please set $HOME or $USERPROFILE")
 	}
 }
 
-func GetAskiDir() (string, error) {
+func MustGetAskiDir() string {
 	str, err := GetHomeDir()
 	if err != nil {
-		return "", err
+		fmt.Printf("failed to get aski dir: %s\n", err)
+		os.Exit(1)
 	}
 
-	return filepath.Join(str, ".aski"), nil
+	return filepath.Join(str, ".aski")
 }
 
-func GetHistoryDir() (string, error) {
-	str, err := GetHomeDir()
-	if err != nil {
-		return "", err
-	}
+func MustGetHistoryDir() string {
+	str := MustGetAskiDir()
 
-	return filepath.Join(str, ".aski", "history"), nil
+	return filepath.Join(str, "history")
 }
 
-func InitSave() error {
-	configDir, err := GetAskiDir()
-	if err != nil {
-		return err
-	}
+func MustGetProfileDir() string {
+	str := MustGetAskiDir()
+
+	return filepath.Join(str, "profile")
+}
+
+func CreateInitialConfigFiles() error {
+	configDir := MustGetAskiDir()
 
 	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return err
 	}
 
+	config := InitialConfig()
 	configPath := filepath.Join(configDir, "config.yaml")
 
-	data, err := yaml.Marshal(InitialConfig())
+	data, err := yaml.Marshal(config)
 	if err != nil {
 		return err
 	}
@@ -144,6 +116,7 @@ func InitSave() error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -153,10 +126,7 @@ func Save(config Config) error {
 		return err
 	}
 
-	configDir, err := GetAskiDir()
-	if err != nil {
-		return err
-	}
+	configDir := MustGetAskiDir()
 
 	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return err
@@ -170,16 +140,12 @@ func Save(config Config) error {
 	return nil
 }
 
-func Init() (Config, error) {
-	homeDir, err := GetHomeDir()
-	if err != nil {
-		return Config{}, err
-	}
+func GetConfig() (Config, error) {
+	askiPath := MustGetAskiDir()
 
-	configPath := homeDir + "/.aski/config.yaml"
-
+	configPath := filepath.Join(askiPath, "config.yaml")
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		err := InitSave()
+		err := CreateInitialConfigFiles()
 		if err != nil {
 			return Config{}, err
 		}
@@ -203,30 +169,35 @@ func Init() (Config, error) {
 		return Config{}, err
 	}
 
+	if config.CurrentProfile == "" {
+		config.CurrentProfile = GetDefaultProfileFileName()
+		err := Save(config)
+		if err != nil {
+			return Config{}, fmt.Errorf("failed to save config: %w", err)
+		}
+	}
+
 	return config, nil
 }
 
 func OpenConfigDir() bool {
 	var cmd *exec.Cmd
 
-	aski, err := GetAskiDir()
-	if err != nil {
-		fmt.Printf("can't get home dir")
-	}
+	askiDir := MustGetAskiDir()
 
 	switch runtime.GOOS {
 	case "windows":
-		cmd = exec.Command("explorer", aski)
+		cmd = exec.Command("explorer", askiDir)
 	case "darwin":
-		cmd = exec.Command("open", aski)
+		cmd = exec.Command("open", askiDir)
 	case "linux":
-		cmd = exec.Command("xdg-open", aski)
+		cmd = exec.Command("xdg-open", askiDir)
 	default:
 		fmt.Printf("unsupported platform: %s \n", runtime.GOOS)
 		return false
 	}
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		return false
 	}

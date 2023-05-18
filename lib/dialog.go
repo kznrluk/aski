@@ -142,7 +142,12 @@ func saveConversation(conv conv.Conversation) (string, error) {
 	}
 	filename := fmt.Sprintf("%s%s.yaml", t.Format("20060102-150405"), escapedSummary)
 
-	configDir, err := config.GetHistoryDir()
+	homeDir, err := config.GetHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("error getting home directory: %v", err)
+	}
+
+	configDir := filepath.Join(homeDir, ".aski", "history")
 	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return filename, err
 	}
