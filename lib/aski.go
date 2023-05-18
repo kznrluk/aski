@@ -76,6 +76,10 @@ func Aski(cmd *cobra.Command, args []string) {
 			fmt.Printf("WARN: File globs are ignored when loading restore.\n")
 		}
 
+		if profileTarget != "" {
+			fmt.Printf("WARN: Profile is ignored when loading restore.\n")
+		}
+
 		println("Restore conversations from " + fileName)
 	} else {
 		ctx = conv.NewConversation(prof)
@@ -125,7 +129,7 @@ func Aski(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 	} else {
-		StartDialog(cfg, prof, ctx, isRestMode, restore != "")
+		StartDialog(cfg, ctx, isRestMode, restore != "")
 	}
 }
 

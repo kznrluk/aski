@@ -22,13 +22,14 @@ import (
 	"time"
 )
 
-func StartDialog(cfg config.Config, profile config.Profile, cv conv.Conversation, isRestMode bool, restored bool) {
+func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, restored bool) {
 	if isRestMode {
 		fmt.Printf("REST Mode \n")
 	}
 
 	history := simplehistory.New()
 
+	profile := cv.GetProfile()
 	editor := &readline.Editor{
 		PromptWriter: func(w io.Writer) (int, error) {
 			return io.WriteString(w, "\u001B[0m"+profile.UserName+"@"+profile.ProfileName+"> ") // print `$ ` with cyan
