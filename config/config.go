@@ -12,35 +12,6 @@ import (
 	"runtime"
 )
 
-type Profile struct {
-	ProfileName      string           `yaml:"ProfileName"`
-	Model            string           `yaml:"Model"`
-	UserName         string           `yaml:"UserName"`
-	AutoSave         bool             `yaml:"AutoSave"`
-	Summarize        bool             `yaml:"Summarize"`
-	SystemContext    string           `yaml:"SystemContext"`
-	Messages         []PreMessage     `yaml:"Messages"`
-	CustomParameters CustomParameters `yaml:"CustomParameters,omitempty"`
-}
-
-// CustomParameters - When these parameters are specified, they will be overwritten during transmission.
-type CustomParameters struct {
-	MaxTokens   int     `yaml:"max_tokens,omitempty"`
-	Temperature float32 `yaml:"temperature,omitempty"`
-	TopP        float32 `yaml:"top_p,omitempty"`
-	// N is fixed at 1 currently
-	// N                int            `yaml:"n,omitempty"`
-	Stop             []string       `yaml:"stop,omitempty"`
-	PresencePenalty  float32        `yaml:"presence_penalty,omitempty"`
-	FrequencyPenalty float32        `yaml:"frequency_penalty,omitempty"`
-	LogitBias        map[string]int `yaml:"logit_bias,omitempty"`
-}
-
-type PreMessage struct {
-	Role    string `yaml:"Role"`
-	Content string `yaml:"Content"`
-}
-
 type Config struct {
 	OpenAIAPIKey   string `yaml:"OpenAIAPIKey"`
 	CurrentProfile string `yaml:"CurrentProfile"`
@@ -48,10 +19,6 @@ type Config struct {
 	// Profiles is no longer being used.
 	// It will remain for a while so that the user's settings are not lost.
 	Profiles []Profile `yaml:"Profiles"`
-}
-
-func GetDefaultProfileFileName() string {
-	return "default.yaml"
 }
 
 func InitialConfig() Config {

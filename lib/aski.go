@@ -1,35 +1,18 @@
 package lib
 
 import (
-	"bufio"
-	"context"
 	"fmt"
+	"github.com/kznrluk/aski/chat"
 	"github.com/kznrluk/aski/config"
 	"github.com/kznrluk/aski/conv"
+	"github.com/kznrluk/aski/file"
 	"github.com/kznrluk/aski/session"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 )
-
-type FileContents struct {
-	Name     string
-	Path     string
-	Contents string
-	Length   int
-}
-
-func isBinary(contents []byte) bool {
-	for _, ch := range contents {
-		if ch == 0 {
-			return true
-		}
-	}
-	return false
-}
 
 func Aski(cmd *cobra.Command, args []string) {
 	profileTarget, err := cmd.Flags().GetString("profile")
@@ -45,10 +28,13 @@ func Aski(cmd *cobra.Command, args []string) {
 		session.SetIsPipe(true)
 	}
 
-	checkAPIKey()
 	cfg, err := config.GetConfig()
 	if err != nil {
 		panic(err)
+	}
+
+	if cfg.OpenAIAPIKey == "" {
+		chat.PromptGetAPIKey(cfg)
 	}
 
 	prof, err := config.GetProfile(cfg, profileTarget)
@@ -86,7 +72,7 @@ func Aski(cmd *cobra.Command, args []string) {
 		ctx.Append(openai.ChatMessageRoleSystem, prof.SystemContext)
 
 		if len(fileGlobs) != 0 {
-			fileContents := getFileContents(fileGlobs)
+			fileContents := file.GetFileContents(fileGlobs)
 			for _, f := range fileContents {
 				if content == "" && !session.IsPipe() {
 					fmt.Printf("Append File: %s\n", f.Name)
@@ -130,80 +116,5 @@ func Aski(cmd *cobra.Command, args []string) {
 		}
 	} else {
 		StartDialog(cfg, ctx, isRestMode, restore != "")
-	}
-}
-
-func getFileContents(fileGlobs []string) []FileContents {
-	var fileContents []FileContents
-	for _, arg := range fileGlobs {
-		files, err := filepath.Glob(arg)
-		if err != nil {
-			panic(err)
-		}
-		for _, file := range files {
-			contentsBytes, err := os.ReadFile(file)
-			if err != nil {
-				panic(err)
-			}
-			content := string(contentsBytes)
-			if isBinary(contentsBytes) {
-				continue
-			}
-
-			info, err := os.Stat(file)
-			if err != nil {
-				panic(err)
-			}
-
-			fileContents = append(fileContents, FileContents{
-				Name:     info.Name(),
-				Path:     file,
-				Contents: content,
-				Length:   len(content),
-			})
-		}
-	}
-	return fileContents
-}
-
-func checkAPIKey() {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		panic(err)
-	}
-
-	if cfg.OpenAIAPIKey == "" {
-		fmt.Printf("Please generate an API key from this URL. Headly, the configuration file is saved in plaintext. \nhttps://platform.openai.com/account/api-keys\n")
-		fmt.Printf("\t OpenAI API Key: ")
-		scanner := bufio.NewScanner(os.Stdin)
-		if scanner.Scan() {
-			text := scanner.Text()
-			fmt.Print("Connecting to OpenAI server ... ")
-			oc := openai.NewClient(text)
-			_, err := oc.CreateChatCompletion(
-				context.Background(),
-				openai.ChatCompletionRequest{
-					Model: openai.GPT3Dot5Turbo,
-					Messages: []openai.ChatCompletionMessage{
-						{
-							Role:    openai.ChatMessageRoleSystem,
-							Content: "Say Hi!",
-						},
-					},
-				},
-			)
-
-			if err != nil {
-				fmt.Printf("Erorr: %s", err.Error())
-				os.Exit(1)
-			}
-
-			fmt.Println("OK")
-			cfg.OpenAIAPIKey = text
-			if err := config.Save(cfg); err != nil {
-				fmt.Printf("Error: %s", err.Error())
-				os.Exit(1)
-			}
-		}
 	}
 }
