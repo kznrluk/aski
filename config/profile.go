@@ -163,7 +163,7 @@ func validateProfile(profile Profile) error {
 	if profile.ProfileName == "" {
 		return fmt.Errorf("ProfileName must not be empty")
 	}
-	if len(profile.UserName) > 16 || !regexp.MustCompile("^[a-zA-Z0-9]+$").MatchString(profile.UserName) {
+	if len(profile.UserName) > 16 || !regexp.MustCompile("^[a-zA-Z0-9/\\\\]+$").MatchString(profile.UserName) {
 		return fmt.Errorf("UserName must be alphanumeric and no more than 8 characters")
 	}
 	if profile.SystemContext == "" {
