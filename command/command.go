@@ -172,7 +172,7 @@ func showContext(conv conv.Conversation) {
 		if msg.Head {
 			head = "Head"
 		}
-		fmt.Printf("%s %s\n", yellow(fmt.Sprintf("%.*s [%s] -> %.*s", 6, msg.Sha1, msg.Role, 6, msg.ParentSha1)), blue(head))
+		fmt.Printf("%s %s\n", yellow(fmt.Sprintf("[%.*s] %s -> [%.*s]", 6, msg.Sha1, msg.Role, 6, msg.ParentSha1)), blue(head))
 
 		out, err := r.Render(msg.Content)
 		if err != nil {

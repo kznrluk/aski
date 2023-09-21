@@ -40,9 +40,17 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 		HistoryCycling: true,
 	}
 
+	editor.Init()
+	fmt.Printf("Profile: %s, Model: %s \n", profile.ProfileName, profile.Model)
+
 	first := !restored
 	for {
+		editor.PromptWriter = func(w io.Writer) (int, error) {
+			return io.WriteString(w, fmt.Sprintf("%.*s > ", 6, cv.Last().Sha1))
+		}
+
 		input, err, interrupt := getInput(editor)
+
 		history.Add(input)
 		if interrupt || strings.HasPrefix(input, ":ex") {
 			if profile.AutoSave && !first {
@@ -75,6 +83,12 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 			continue
 		}
 
+		last := cv.Last()
+		yellow := color.New(color.FgHiYellow).SprintFunc()
+		fmt.Print(yellow(fmt.Sprintf("\n%s -> [%.*s] \n", last.Role, 6, last.ParentSha1)))
+		fmt.Print(fmt.Sprintf("%s", last.Content))
+		fmt.Print(yellow(fmt.Sprintf(" [%.*s]\n", 6, last.Sha1)))
+
 		messages := cv.MessagesFromHead()
 		if len(messages) > 0 {
 			lastMessage := messages[len(messages)-1]
@@ -88,8 +102,7 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 		}
 
 		msg := cv.Append(openai.ChatMessageRoleAssistant, data)
-
-		showMessageMeta(msg)
+		fmt.Print(yellow(fmt.Sprintf(" [%.*s]\n", 6, msg.Sha1)))
 		if first {
 			first = false
 
@@ -182,11 +195,6 @@ func appendMessage(input string, ctx conv.Conversation) (conv.Conversation, bool
 			return ctx, false, commandErr
 		}
 
-		if cont {
-			msg := ctx.Last()
-			fmt.Println(msg.Content)
-		}
-
 		return ctx, cont, nil
 	}
 
@@ -198,7 +206,7 @@ func appendMessage(input string, ctx conv.Conversation) (conv.Conversation, bool
 
 func showPendingHeader(role string, to conv.Message) {
 	yellow := color.New(color.FgHiYellow).SprintFunc()
-	fmt.Print(yellow(fmt.Sprintf("\n------ [%s] -> %.*s", role, 6, to.Sha1)))
+	fmt.Print(yellow(fmt.Sprintf("\n%s -> [%.*s]", role, 6, to.Sha1)))
 }
 
 func showMessageMeta(msg conv.Message) {

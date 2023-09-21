@@ -88,7 +88,6 @@ func GetSummary(cfg config.Config, conv conv.Conversation) string {
 	data = strings.ReplaceAll(data, ".", "")
 	data = strings.ReplaceAll(data, "\"", "")
 
-	fmt.Printf("\n")
 	return data
 }
 
@@ -154,7 +153,6 @@ func Stream(ctx context.Context, oc *openai.Client, conv conv.Conversation) (str
 		fmt.Printf("%s", resp.Choices[0].Delta.Content)
 		data += resp.Choices[0].Delta.Content
 	}
-	fmt.Printf("\n")
 	return data, nil
 }
 
