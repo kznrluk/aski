@@ -116,6 +116,7 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 
 func Single(cfg config.Config, ctx conv.Conversation, isRestMode bool) (string, error) {
 	data, err := chat.RetrieveResponse(isRestMode, cfg, ctx)
+	fmt.Printf("\n") // in some cases, shell prompt delete the last line so we add a new line
 	if err != nil {
 		fmt.Printf(err.Error())
 		return "", nil
