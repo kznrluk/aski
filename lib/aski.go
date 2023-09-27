@@ -108,7 +108,7 @@ func Aski(cmd *cobra.Command, args []string) {
 		ctx.Append(openai.ChatMessageRoleUser, content)
 	}
 
-	if content != "" || session.IsPipe() {
+	if content != "" {
 		_, err = Single(cfg, ctx, isRestMode)
 		if err != nil {
 			fmt.Printf("error: %s", err.Error())
