@@ -149,12 +149,12 @@ func InitialProfile() Profile {
 		currentUser.Username = "aski"
 	}
 	return Profile{
-		ProfileName:   "GPT3.5",
+		ProfileName:   "GPT4",
 		UserName:      currentUser.Username,
 		AutoSave:      true,
 		Summarize:     true,
 		SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
-		Model:         openai.GPT3Dot5Turbo,
+		Model:         openai.GPT4,
 		Messages:      []PreMessage{},
 	}
 }
