@@ -19,9 +19,16 @@ type Profile struct {
 	UserName         string           `yaml:"UserName"`
 	AutoSave         bool             `yaml:"AutoSave"`
 	Summarize        bool             `yaml:"Summarize"`
+	ResponseFormat   string           `yaml:"ResponseFormat"`
 	SystemContext    string           `yaml:"SystemContext"`
 	Messages         []PreMessage     `yaml:"Messages"`
 	CustomParameters CustomParameters `yaml:"CustomParameters,omitempty"`
+}
+
+func (p Profile) GetResponseFormat() *openai.ChatCompletionResponseFormat {
+	return &openai.ChatCompletionResponseFormat{
+		Type: openai.ChatCompletionResponseFormatType(p.ResponseFormat),
+	}
 }
 
 type PreMessage struct {
@@ -149,13 +156,14 @@ func InitialProfile() Profile {
 		currentUser.Username = "aski"
 	}
 	return Profile{
-		ProfileName:   "GPT4",
-		UserName:      currentUser.Username,
-		AutoSave:      true,
-		Summarize:     true,
-		SystemContext: "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
-		Model:         openai.GPT4,
-		Messages:      []PreMessage{},
+		ProfileName:    "GPT4",
+		UserName:       currentUser.Username,
+		AutoSave:       true,
+		Summarize:      false,
+		ResponseFormat: string(openai.ChatCompletionResponseFormatTypeText),
+		SystemContext:  "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
+		Model:          openai.GPT4,
+		Messages:       []PreMessage{},
 	}
 }
 
@@ -170,16 +178,21 @@ func validateProfile(profile Profile) error {
 		return fmt.Errorf("SystemContext must not be empty")
 	}
 	if profile.Model == "" {
-		return fmt.Errorf("Model must not be empty")
+		return fmt.Errorf("model must not be empty")
 	}
 
 	for _, message := range profile.Messages {
 		if message.Role == "" {
-			return fmt.Errorf("Message Role must not be empty")
+			return fmt.Errorf("message Role must not be empty")
 		}
 		if message.Content == "" {
-			return fmt.Errorf("Message Content must not be empty")
+			return fmt.Errorf("message Content must not be empty")
 		}
+	}
+
+	if profile.ResponseFormat != string(openai.ChatCompletionResponseFormatTypeJSONObject) &&
+		profile.ResponseFormat != string(openai.ChatCompletionResponseFormatTypeText) {
+		return fmt.Errorf("response_format must be either json_object or text")
 	}
 
 	return ValidateCustomParameters(profile.CustomParameters)

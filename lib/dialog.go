@@ -45,6 +45,7 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 
 	first := !restored
 	for {
+		fmt.Printf("\n")
 		editor.PromptWriter = func(w io.Writer) (int, error) {
 			return io.WriteString(w, fmt.Sprintf("%.*s > ", 6, cv.Last().Sha1))
 		}
@@ -95,9 +96,10 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 			showPendingHeader(openai.ChatMessageRoleAssistant, lastMessage)
 		}
 
+		fmt.Printf("\n")
 		data, err := chat.RetrieveResponse(isRestMode, cfg, cv)
 		if err != nil {
-			fmt.Printf(err.Error())
+			fmt.Printf("\n%s", err.Error())
 			continue
 		}
 

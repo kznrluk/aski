@@ -99,6 +99,7 @@ func Rest(ctx context.Context, oc *openai.Client, conv conv.Conversation) (strin
 		openai.ChatCompletionRequest{
 			Model:            profile.Model,
 			Messages:         conv.ToChatCompletionMessage(),
+			ResponseFormat:   profile.GetResponseFormat(),
 			MaxTokens:        customParams.MaxTokens,
 			Temperature:      customParams.Temperature,
 			TopP:             customParams.TopP,
@@ -124,6 +125,7 @@ func Stream(ctx context.Context, oc *openai.Client, conv conv.Conversation) (str
 		openai.ChatCompletionRequest{
 			Model:            profile.Model,
 			Messages:         conv.ToChatCompletionMessage(),
+			ResponseFormat:   profile.GetResponseFormat(),
 			MaxTokens:        customParams.MaxTokens,
 			Temperature:      customParams.Temperature,
 			TopP:             customParams.TopP,
@@ -138,7 +140,6 @@ func Stream(ctx context.Context, oc *openai.Client, conv conv.Conversation) (str
 		return "", err
 	}
 
-	fmt.Printf("\n")
 	data := ""
 	for {
 		resp, err := stream.Recv()
@@ -165,8 +166,8 @@ func createCancellableContext() (context.Context, context.CancelFunc) {
 
 		select {
 		case <-sigChan:
-			cancel()
 			println()
+			cancel()
 		case <-ctx.Done():
 		}
 
