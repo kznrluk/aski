@@ -165,6 +165,10 @@ CurrentProfile: gpt4.yaml
 
 会話の概要を表示するかどうかを示します。trueに設定されているプロファイルで会話を始めた際、会話の概要をGPT3.5で生成します。
 
+**ResponseFormat**
+
+`text` か `json_object` を指定します。 `text` を指定した場合、ChatGPTは通常のテキスト形式で応答を行います。 `json_object` を指定し、プロンプトに `json` を含めて送信した場合、ChatGPTは有効なJSONオブジェクト形式で応答を行います。
+
 **SystemContext**
 
 ChatGPTに送信されるシステムコンテキストです。会話の最も最初に送信され、どのような会話をしてほしいかをChatGPTに伝えます。

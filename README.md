@@ -9,9 +9,9 @@
 `aski` is a feature-rich ChatGPT client for the terminal. In addition to regular conversations, it offers various features such as saving and restoring conversation history, moving to and editing arbitrary conversations.
 
 ## Features
-- Written in Go, so it can be used on any platform that supports Go.
+- It is written in Go, which allows for cross-platform compatibility on systems that support Go.
 - Works in the shell, compatible with PowerShell and Terminal.
-- GPT4 supported
+- Support for GPT-4 Turbo (Preview)
 - Save and restore conversation history
 - Move to any point in the conversation
 - File attachment with GLOB support
@@ -77,7 +77,7 @@ All commands except `:exit` are searched by forward match. For example, typing `
 
 ![external editor](https://raw.githubusercontent.com/kznrluk/aski/main/docs/editor.gif)
 
-For prompts with line breaks or long input that is difficult to input on the console, you can use an external editor.
+For prompts with line breaks or long input difficult to type directly into the console, you can use an external editor.
 
 ```
 aski@GPT4> :editor
@@ -168,11 +168,15 @@ Indicates whether to automatically save the conversation history. Profiles set t
 
 Indicates whether to display the conversation summary. When starting a conversation with a profile set to true, a summary of the conversation will be generated using GPT3.5.
 
+**ResponseFormat**
+
+Specifies whether the response should be in `text` or `json_object` format. If `text` is selected, ChatGPT will respond in the usual text format. If `json_object` is selected and the prompt includes `json`, ChatGPT will respond in a valid JSON object format.
+
 **SystemContext**
 
 The system context that will be sent to ChatGPT. It is sent at the beginning of the conversation to tell ChatGPT what kind of conversation you want to have.
 
-**UserMessages**
+**Messages**
 
 The user context that will be sent to ChatGPT. It is sent at the beginning of the conversation. Use it when you don't want to include information in the SystemContext.
 
