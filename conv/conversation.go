@@ -7,6 +7,7 @@ import (
 	"github.com/goccy/go-yaml"
 	"github.com/kznrluk/aski/config"
 	"github.com/kznrluk/aski/session"
+	"github.com/kznrluk/aski/util"
 	"github.com/sashabaranov/go-openai"
 	"strings"
 )
@@ -84,6 +85,14 @@ func (c *conv) Append(role string, message string) Message {
 	}
 
 	sha := CalculateSHA1([]string{role, message, parent})
+
+	if c.Profile.DiceRoll != "" {
+		result, err := util.RollDice(c.Profile.DiceRoll)
+		if err != nil {
+			panic(err) // profile validation should have caught this
+		}
+		message = fmt.Sprintf("%s\n DiceRoll %s: %d", message, c.Profile.DiceRoll, result)
+	}
 
 	msg := Message{
 		Sha1:       sha,

@@ -23,6 +23,8 @@ type Profile struct {
 	SystemContext    string           `yaml:"SystemContext"`
 	Messages         []PreMessage     `yaml:"Messages"`
 	CustomParameters CustomParameters `yaml:"CustomParameters,omitempty"`
+
+	DiceRoll string `yaml:"DiceRoll,omitempty"`
 }
 
 func (p Profile) GetResponseFormat() *openai.ChatCompletionResponseFormat {
@@ -206,6 +208,14 @@ func validateProfile(profile Profile) error {
 	if profile.ResponseFormat != string(openai.ChatCompletionResponseFormatTypeJSONObject) &&
 		profile.ResponseFormat != string(openai.ChatCompletionResponseFormatTypeText) {
 		return fmt.Errorf("response_format must be either json_object or text")
+	}
+
+	if profile.DiceRoll != "" {
+		re := regexp.MustCompile(`(?i)^\d+d\d+$`)
+		if !re.MatchString(profile.DiceRoll) {
+			return fmt.Errorf("DiceRoll must match the format of XdY (ex: 3d6, 1d100), but got: %s", profile.DiceRoll)
+		}
+		return nil
 	}
 
 	return ValidateCustomParameters(profile.CustomParameters)
