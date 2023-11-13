@@ -86,12 +86,25 @@ func GetProfile(cfg Config, overload string) (Profile, error) {
 			return Profile{}, fmt.Errorf("cannot parse profile file: %s", err)
 		}
 
+		migrated, changed := migrateProfile(profile)
+		if changed {
+			profileData, err := yaml.Marshal(migrated)
+			if err != nil {
+				return Profile{}, fmt.Errorf("cannot marshal profile file: %s", err)
+			}
+
+			err = os.WriteFile(target, profileData, 0700)
+			if err != nil {
+				return Profile{}, fmt.Errorf("cannot write profile file: %s", err)
+			}
+		}
+
 		// Validate the loaded profile
-		if err := validateProfile(profile); err != nil {
+		if err := validateProfile(migrated); err != nil {
 			return Profile{}, fmt.Errorf("invalid profile %s: %s", target, err)
 		}
 
-		return profile, nil
+		return migrated, nil
 	}
 
 	return Profile{}, fmt.Errorf("profile file not found, tried: %s", strings.Join(toSearchPaths, ", "))
@@ -196,6 +209,18 @@ func validateProfile(profile Profile) error {
 	}
 
 	return ValidateCustomParameters(profile.CustomParameters)
+}
+
+func migrateProfile(profile Profile) (Profile, bool) {
+	defaultProfile := InitialProfile()
+	changed := false
+
+	if profile.ResponseFormat == "" {
+		profile.ResponseFormat = defaultProfile.ResponseFormat
+		changed = true
+	}
+
+	return profile, changed
 }
 
 func ValidateCustomParameters(customParams CustomParameters) error {
