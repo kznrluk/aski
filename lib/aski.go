@@ -34,7 +34,7 @@ func Aski(cmd *cobra.Command, args []string) {
 	}
 
 	if cfg.OpenAIAPIKey == "" {
-		chat.PromptGetAPIKey(cfg)
+		chat.PromptGetAPIKey(&cfg)
 	}
 
 	prof, err := config.GetProfile(cfg, profileTarget)

@@ -11,7 +11,7 @@ import (
 )
 
 // PromptGetAPIKey prompts the user to enter an API key and saves it to the configuration file.
-func PromptGetAPIKey(cfg config.Config) {
+func PromptGetAPIKey(cfg *config.Config) {
 	fmt.Printf("Please generate an API key from this URL. Currently, the configuration file is saved in plaintext. \nhttps://platform.openai.com/account/api-keys\n")
 	fmt.Printf("\t OpenAI API Key: ")
 	scanner := bufio.NewScanner(os.Stdin)
@@ -41,7 +41,7 @@ func PromptGetAPIKey(cfg config.Config) {
 
 		fmt.Println("OK")
 		cfg.OpenAIAPIKey = text
-		if err := config.Save(cfg); err != nil {
+		if err := config.Save(*cfg); err != nil {
 			fmt.Printf("Error: %s", err.Error())
 			os.Exit(1)
 		}
