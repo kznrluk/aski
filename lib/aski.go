@@ -18,6 +18,7 @@ func Aski(cmd *cobra.Command, args []string) {
 	profileTarget, err := cmd.Flags().GetString("profile")
 	isRestMode, _ := cmd.Flags().GetBool("rest")
 	content, _ := cmd.Flags().GetString("content")
+	model, _ := cmd.Flags().GetString("model")
 	fileGlobs, _ := cmd.Flags().GetStringSlice("file")
 	restore, _ := cmd.Flags().GetString("restore")
 	verbose, _ := cmd.Flags().GetBool("verbose")
@@ -41,6 +42,10 @@ func Aski(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Printf("error getting profile: %v\n. using default profile.", err)
 		prof = config.InitialProfile()
+	}
+
+	if model != "" {
+		prof.Model = model
 	}
 
 	var ctx conv.Conversation
