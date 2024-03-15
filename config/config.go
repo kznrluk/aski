@@ -13,8 +13,9 @@ import (
 )
 
 type Config struct {
-	OpenAIAPIKey   string `yaml:"OpenAIAPIKey"`
-	CurrentProfile string `yaml:"CurrentProfile"`
+	OpenAIAPIKey    string `yaml:"OpenAIAPIKey"`
+	AnthropicAPIKey string `yaml:"AnthropicAPIKey"`
+	CurrentProfile  string `yaml:"CurrentProfile"`
 
 	// Profiles is no longer being used.
 	// It will remain for a while so that the user's settings are not lost.
@@ -27,8 +28,9 @@ func InitialConfig() Config {
 		currentUser.Username = "aski"
 	}
 	return Config{
-		OpenAIAPIKey:   "",
-		CurrentProfile: GetDefaultProfileFileName(),
+		OpenAIAPIKey:    "",
+		AnthropicAPIKey: "",
+		CurrentProfile:  GetDefaultProfileFileName(),
 	}
 }
 

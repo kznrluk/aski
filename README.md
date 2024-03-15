@@ -11,7 +11,8 @@
 ## Features
 - It is written in Go, which allows for cross-platform compatibility on systems that support Go.
 - Works in the shell, compatible with PowerShell and Terminal.
-- Support for GPT-4 Turbo (Preview)
+- Support for OpenAI GPT-4 Turbo
+- Support for Anthropic Claude3Opus (EXPERIMENTAL)
 - Save and restore conversation history
 - Move to any point in the conversation
 - File attachment with GLOB support
@@ -46,6 +47,9 @@ By default, it uses a generic profile, unless otherwise specified.
 - `-f, --file`    : Specifies a file to send with the conversation.
 - `-c, --content` : Outputs the answer for the content of the argument without using the interactive mode and ends the program. Useful for integration with other applications.
 - `-r, --restore` : Restores the conversation history from a history file. With this option, you can continue a previous conversation. Forward match.
+- `-m, --model`   : Specifies the model to use. It must be a valid value that can be used with the OpenAI API.
+                    [Models - OpenAI API](https://platform.openai.com/docs/models/chatgpt)
+                    If you want to use Claude3, specify `claude-3-opus-20240229`.
 - `--rest`        : Communicate with the REST API. Useful when streaming is unstable or appropriate responses cannot be received.
 ```
 
@@ -143,6 +147,7 @@ The configuration file includes the current profile and OpenAI API key. Profiles
 
 ```yaml
 OpenAIAPIKey: sk-Bs.....................
+AnthropicAPIKey: sk-.....................
 CurrentProfile: gpt4.yaml
 ```
 

@@ -10,6 +10,7 @@
 - Go言語によるマルチプラットフォーム対応 & シングルバイナリ
 - PowerShellやTerminalでの利用が可能
 - GPT-4対応
+- Claude3対応 (EXPERIMENTAL)
 - 会話履歴の保存と復元
 - 任意時点の会話へ移動
 - GLOBによるファイル添付機能
@@ -45,6 +46,9 @@ $ aski
 - `-f, --file`    : 会話とともに送信するファイルを指定します。
 - `-c, --content` : 対話モードを利用せず、引数のコンテンツの回答を出力してプログラムを終了します。他アプリケーションとの連携に便利です。
 - `-r, --restore` : 会話履歴をヒストリファイルから復元します。このオプションを使用すると、以前の会話を続けることができます。前方一致。
+- `-m, --model`   : 使用するモデルを指定します。OpenAIのAPIで利用できる値である必要があります。
+                    [Models - OpenAI API](https://platform.openai.com/docs/models/chatgpt)
+                    Claude3を使用する場合は `claude-3-opus-20240229` を指定します。
 - `--rest`        : REST APIで通信します。ストリーミングが不安定な場合や、適切な応答が受信できない場合に便利です。
 ```
 
@@ -140,6 +144,7 @@ askiが利用するファイルは基本的にホームディレクトリ直下�
 
 ```yaml
 OpenAIAPIKey: sk-Bs.....................
+AnthropicAPIKey: sk-.....................
 CurrentProfile: gpt4.yaml
 ```
 

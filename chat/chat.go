@@ -6,6 +6,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/kznrluk/aski/config"
 	"github.com/kznrluk/aski/conv"
+	"github.com/kznrluk/go-anthropic"
 	"github.com/sashabaranov/go-openai"
 	"io"
 	"os"
@@ -18,11 +19,20 @@ func RetrieveResponse(isRestMode bool, cfg config.Config, conv conv.Conversation
 	cancelCtx, cancelFunc := createCancellableContext()
 	defer cancelFunc()
 
+	if isClaude(conv.GetProfile().Model) {
+		ac := anthropic.NewClient(cfg.AnthropicAPIKey)
+		return StreamClaudeExperimental(cancelCtx, ac, conv)
+	}
+
 	oc := openai.NewClient(cfg.OpenAIAPIKey)
 	if isRestMode {
 		return Rest(cancelCtx, oc, conv)
 	}
 	return Stream(cancelCtx, oc, conv)
+}
+
+func isClaude(model string) bool {
+	return model == string(anthropic.Claude3Opus20240229)
 }
 
 func GetSummary(cfg config.Config, conv conv.Conversation) string {
@@ -175,4 +185,34 @@ func createCancellableContext() (context.Context, context.CancelFunc) {
 	}()
 
 	return ctx, cancel
+}
+
+// this will be refactored in the future
+func StreamClaudeExperimental(ctx context.Context, ac *anthropic.Client, conv conv.Conversation) (string, error) {
+	stream, err := ac.CreateMessageStream(anthropic.MessageRequest{
+		MaxTokens: 4096,
+		Model:     anthropic.Claude3Opus20240229,
+		System:    conv.GetProfile().SystemContext,
+		Messages:  conv.ToAnthropicMessage(),
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	data := ""
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				return "", err
+			}
+		}
+
+		fmt.Printf("%s", resp.Delta.Text)
+		data += resp.Delta.Text
+	}
+	return data, nil
 }

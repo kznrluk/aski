@@ -1,12 +1,13 @@
 module github.com/kznrluk/aski
 
-go 1.20
+go 1.21.6
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/charmbracelet/glamour v0.6.0
 	github.com/fatih/color v1.16.0
 	github.com/goccy/go-yaml v1.11.2
+	github.com/kznrluk/go-anthropic v0.0.0-20240315093738-f37049eee303
 	github.com/mattn/go-colorable v0.1.13
 	github.com/nyaosorg/go-readline-ny v1.0.1
 	github.com/sashabaranov/go-openai v1.17.2

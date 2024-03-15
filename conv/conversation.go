@@ -8,6 +8,7 @@ import (
 	"github.com/kznrluk/aski/config"
 	"github.com/kznrluk/aski/session"
 	"github.com/kznrluk/aski/util"
+	"github.com/kznrluk/go-anthropic"
 	"github.com/sashabaranov/go-openai"
 	"strings"
 )
@@ -24,6 +25,7 @@ type (
 		SetProfile(profile config.Profile) error
 		Modify(m Message) error
 		ToChatCompletionMessage() []openai.ChatCompletionMessage
+		ToAnthropicMessage() []anthropic.Message
 		ChangeHead(sha string) (Message, error)
 		GetProfile() config.Profile
 		ToYAML() ([]byte, error)
@@ -186,6 +188,36 @@ func (c conv) ToChatCompletionMessage() []openai.ChatCompletionMessage {
 	for _, message := range c.MessagesFromHead() {
 		chatMessages = append(chatMessages, openai.ChatCompletionMessage{
 			Role:    message.Role,
+			Content: message.Content,
+		})
+	}
+
+	if session.Verbose() {
+		for _, message := range chatMessages {
+			fmt.Printf("[%s]: %.32s\n", message.Role, message.Content)
+		}
+	}
+
+	return chatMessages
+}
+
+func (c conv) ToAnthropicMessage() []anthropic.Message {
+	var chatMessages []anthropic.Message
+
+	for _, message := range c.MessagesFromHead() {
+		var role anthropic.RoleType
+
+		if message.Role == openai.ChatMessageRoleSystem {
+			continue // anthropic doesn't have a system role
+		}
+
+		if message.Role == openai.ChatMessageRoleUser {
+			role = anthropic.ChatMessageRoleUser
+		} else {
+			role = anthropic.ChatMessageRoleAssistant
+		}
+		chatMessages = append(chatMessages, anthropic.Message{
+			Role:    role,
 			Content: message.Content,
 		})
 	}
