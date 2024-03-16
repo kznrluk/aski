@@ -42,6 +42,8 @@ github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 h1:Z9n2FFNU
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51/go.mod h1:CzGEWj7cYgsdH8dAjBGEr58BoE7ScuLd+fwFZ44+/x8=
 github.com/kznrluk/go-anthropic v0.0.0-20240316030854-10ddfcdfc7dd h1:pw6MRGTZmTj7PEHDWjyuOu9JgQ44Ubc68qe7lizhzG8=
 github.com/kznrluk/go-anthropic v0.0.0-20240316030854-10ddfcdfc7dd/go.mod h1:uQw260BrkJJ1maPoZ3WA/NXvRD29tkMKBZpfVZvBDhk=
+github.com/kznrluk/go-anthropic v0.0.1 h1:DqyaEfUdPp3VqqwD1URWPIC1z4MiN9if3VJ9zfSB4gA=
+github.com/kznrluk/go-anthropic v0.0.1/go.mod h1:uQw260BrkJJ1maPoZ3WA/NXvRD29tkMKBZpfVZvBDhk=
 github.com/leodido/go-urn v1.2.0 h1:hpXL4XnriNwQ/ABnpepYM/1vCLWNDfUNts8dX3xTG6Y=
 github.com/leodido/go-urn v1.2.0/go.mod h1:+8+nEpDfqqsY+g338gtMEUOtuK+4dEMhiQEgxpxOKII=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=

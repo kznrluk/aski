@@ -1,4 +1,4 @@
-# Aski - ChatGPT Client for Terminal
+# aski - ChatGPT / Claude Client for Terminal
 
 ![using aski](https://raw.githubusercontent.com/kznrluk/aski/main/docs/use.gif)
 
@@ -10,7 +10,7 @@
 - Go言語によるマルチプラットフォーム対応 & シングルバイナリ
 - PowerShellやTerminalでの利用が可能
 - GPT-4対応
-- Claude3対応 (EXPERIMENTAL)
+- Claude3対応
 - 会話履歴の保存と復元
 - 任意時点の会話へ移動
 - GLOBによるファイル添付機能
@@ -60,7 +60,6 @@ $ aski
 > :
 
   :history       - 会話の履歴を表示します。
-  :summary       - 会話の概要を表示します。
   :move          - 別のメッセージへのHEADを変更します。
   :config        - 設定ディレクトリを開きます。
   :editor        - 新しいメッセージを追加するために外部テキストエディタを開きます。
@@ -165,10 +164,6 @@ CurrentProfile: gpt4.yaml
 **AutoSave**
 
 会話履歴を自動的に保存するかどうかを示します。trueに設定されているプロファイルは、会話履歴を自動的に保存します。
-
-**Summarize**
-
-会話の概要を表示するかどうかを示します。trueに設定されているプロファイルで会話を始めた際、会話の概要をGPT3.5で生成します。
 
 **ResponseFormat**
 

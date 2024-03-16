@@ -7,7 +7,7 @@ require (
 	github.com/charmbracelet/glamour v0.6.0
 	github.com/fatih/color v1.16.0
 	github.com/goccy/go-yaml v1.11.3
-	github.com/kznrluk/go-anthropic v0.0.0-20240316030854-10ddfcdfc7dd
+	github.com/kznrluk/go-anthropic v0.0.1
 	github.com/mattn/go-colorable v0.1.13
 	github.com/nyaosorg/go-readline-ny v1.2.0
 	github.com/sashabaranov/go-openai v1.20.4

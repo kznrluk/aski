@@ -1,4 +1,4 @@
-# Aski - ChatGPT Client for Terminal
+# Aski - ChatGPT / Claude Client for Terminal
 
 ![using aski](https://raw.githubusercontent.com/kznrluk/aski/main/docs/use.gif)
 
@@ -12,7 +12,7 @@
 - It is written in Go, which allows for cross-platform compatibility on systems that support Go.
 - Works in the shell, compatible with PowerShell and Terminal.
 - Support for OpenAI GPT-4 Turbo
-- Support for Anthropic Claude3Opus (EXPERIMENTAL)
+- Support for Anthropic Claude3
 - Save and restore conversation history
 - Move to any point in the conversation
 - File attachment with GLOB support
@@ -62,7 +62,6 @@ By default, it uses a generic profile, unless otherwise specified.
 > :
 
   :history       - Show conversation history.
-  :summary       - Show conversation summary.
   :move          - Change HEAD to another message.
   :config        - Open configuration directory.
   :editor        - Open an external text editor to add new message.
@@ -168,10 +167,6 @@ The name of the model you want to use. It must be a valid value that can be used
 **AutoSave**
 
 Indicates whether to automatically save the conversation history. Profiles set to true will automatically save the conversation history.
-
-**Summarize**
-
-Indicates whether to display the conversation summary. When starting a conversation with a profile set to true, a summary of the conversation will be generated using GPT3.5.
 
 **ResponseFormat**
 

@@ -19,13 +19,12 @@ type (
 		GetMessageFromSha1(sha1partial string) (Message, error)
 		Last() Message
 		MessagesFromHead() []Message
-		SetSummary(summary string)
-		GetSummary() string
 		Append(role string, message string) Message
+		SetSystem(message string)
 		SetProfile(profile config.Profile) error
 		Modify(m Message) error
-		ToChatCompletionMessage() []openai.ChatCompletionMessage
-		ToAnthropicMessage() []anthropic.Message
+		ToOpenAIMessage() []openai.ChatCompletionMessage
+		ToAnthropicMessage() ([]anthropic.Message, string)
 		ChangeHead(sha string) (Message, error)
 		GetProfile() config.Profile
 		ToYAML() ([]byte, error)
@@ -33,7 +32,7 @@ type (
 
 	conv struct {
 		Profile  config.Profile
-		Summary  string
+		System   string
 		Messages []Message
 	}
 
@@ -47,25 +46,25 @@ type (
 	}
 )
 
+const (
+	ChatRoleUser      = "user"
+	ChatRoleAssistant = "assistant"
+)
+
 func (c conv) GetMessages() []Message {
 	return c.Messages
 }
 
 func (c conv) Last() Message {
 	if len(c.Messages) == 0 {
-		return Message{}
+		return c.convertSystemToMessage()
 	}
 	return c.Messages[len(c.Messages)-1]
 }
 
-func (c *conv) SetSummary(summary string) {
-	c.Summary = summary
+func (c conv) SetSystem(text string) {
+	c.System = text
 }
-
-func (c conv) GetSummary() string {
-	return c.Summary
-}
-
 func (c *conv) Modify(m Message) error {
 	for i, message := range c.Messages {
 		if message.Sha1 == m.Sha1 {
@@ -104,7 +103,7 @@ func (c *conv) Append(role string, message string) Message {
 		Head:       true,
 	}
 
-	if role == openai.ChatMessageRoleUser {
+	if role == ChatRoleUser {
 		msg.UserName = c.Profile.UserName
 	}
 
@@ -182,8 +181,15 @@ func (c conv) MessagesFromHead() []Message {
 	return []Message{}
 }
 
-func (c conv) ToChatCompletionMessage() []openai.ChatCompletionMessage {
+func (c conv) ToOpenAIMessage() []openai.ChatCompletionMessage {
 	var chatMessages []openai.ChatCompletionMessage
+
+	if c.System != "" {
+		chatMessages = append(chatMessages, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: c.System,
+		})
+	}
 
 	for _, message := range c.MessagesFromHead() {
 		chatMessages = append(chatMessages, openai.ChatCompletionMessage{
@@ -201,20 +207,19 @@ func (c conv) ToChatCompletionMessage() []openai.ChatCompletionMessage {
 	return chatMessages
 }
 
-func (c conv) ToAnthropicMessage() []anthropic.Message {
+func (c conv) ToAnthropicMessage() ([]anthropic.Message, string) {
 	var chatMessages []anthropic.Message
 
+	// NOTE: Anthropic does not include system messages in the conversation
 	for _, message := range c.MessagesFromHead() {
-		var role anthropic.RoleType
+		var role string
 
-		if message.Role == openai.ChatMessageRoleSystem {
-			continue // anthropic doesn't have a system role
-		}
-
-		if message.Role == openai.ChatMessageRoleUser {
+		if message.Role == ChatRoleUser {
 			role = anthropic.ChatMessageRoleUser
-		} else {
+		} else if message.Role == ChatRoleAssistant {
 			role = anthropic.ChatMessageRoleAssistant
+		} else {
+			panic(fmt.Sprintf("unknown role: %s", message.Role))
 		}
 		chatMessages = append(chatMessages, anthropic.Message{
 			Role:    role,
@@ -228,7 +233,7 @@ func (c conv) ToAnthropicMessage() []anthropic.Message {
 		}
 	}
 
-	return chatMessages
+	return chatMessages, c.System
 }
 
 func (c conv) ToYAML() ([]byte, error) {
@@ -249,10 +254,19 @@ func (c *conv) SetProfile(profile config.Profile) error {
 	return nil
 }
 
+func (c conv) convertSystemToMessage() Message {
+	return Message{
+		Sha1:       CalculateSHA1([]string{c.System}),
+		ParentSha1: "ROOT",
+		Role:       "system",
+		Content:    c.System,
+		Head:       false,
+	}
+}
+
 func NewConversation(profile config.Profile) Conversation {
 	return &conv{
 		Profile:  profile,
-		Summary:  "",
 		Messages: []Message{},
 	}
 }

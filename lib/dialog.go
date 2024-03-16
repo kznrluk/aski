@@ -9,7 +9,6 @@ import (
 	"github.com/kznrluk/aski/config"
 	"github.com/kznrluk/aski/conv"
 	"github.com/mattn/go-colorable"
-	"github.com/sashabaranov/go-openai"
 	"io"
 
 	"github.com/nyaosorg/go-readline-ny"
@@ -42,6 +41,8 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 
 	editor.Init()
 	fmt.Printf("Profile: %s, Model: %s \n", profile.ProfileName, profile.Model)
+
+	cli := chat.ProvideChat(profile.Model, cfg)
 
 	first := !restored
 	for {
@@ -93,31 +94,30 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 		messages := cv.MessagesFromHead()
 		if len(messages) > 0 {
 			lastMessage := messages[len(messages)-1]
-			showPendingHeader(openai.ChatMessageRoleAssistant, lastMessage)
+			showPendingHeader(conv.ChatRoleAssistant, lastMessage)
 		}
 
 		fmt.Printf("\n")
-		data, err := chat.RetrieveResponse(isRestMode, cfg, cv)
+		data, err := cli.Retrieve(cv, isRestMode)
 		if err != nil {
 			fmt.Printf("\n%s", err.Error())
 			continue
 		}
 
-		msg := cv.Append(openai.ChatMessageRoleAssistant, data)
+		msg := cv.Append(conv.ChatRoleAssistant, data)
 		fmt.Print(yellow(fmt.Sprintf(" [%.*s]\n", 6, msg.Sha1)))
 		if first {
 			first = false
-
-			if profile.Summarize {
-				summary := chat.GetSummary(cfg, cv)
-				cv.SetSummary(summary)
-			}
 		}
 	}
 }
 
-func Single(cfg config.Config, ctx conv.Conversation, isRestMode bool) (string, error) {
-	data, err := chat.RetrieveResponse(isRestMode, cfg, ctx)
+func OneShot(cfg config.Config, cv conv.Conversation, isRestMode bool) (string, error) {
+	profile := cv.GetProfile()
+	cli := chat.ProvideChat(profile.Model, cfg)
+
+	data, err := cli.Retrieve(cv, isRestMode)
+
 	fmt.Printf("\n") // in some cases, shell prompt delete the last line so we add a new line
 	if err != nil {
 		fmt.Printf(err.Error())
@@ -151,12 +151,8 @@ func getInput(reader *readline.Editor) (string, error, bool) {
 
 func saveConversation(conv conv.Conversation) (string, error) {
 	t := time.Now()
-	escapedSummary := ""
-	if conv.GetSummary() != "" {
-		escapedSummary += "_"
-		escapedSummary += cleanFilenameElement(filepath.Clean(conv.GetSummary()))
-	}
-	filename := fmt.Sprintf("%s%s.yaml", t.Format("20060102-150405"), escapedSummary)
+
+	filename := fmt.Sprintf("%s.yaml", t.Format("20060102-150405"))
 
 	homeDir, err := config.GetHomeDir()
 	if err != nil {
@@ -182,15 +178,6 @@ func saveConversation(conv conv.Conversation) (string, error) {
 	return filename, nil
 }
 
-func cleanFilenameElement(input string) string {
-	invalidCharacters := [...]string{"/", "\\", "?", "%", "*", "|", "<", ">"}
-	output := input
-	for _, char := range invalidCharacters {
-		output = strings.Replace(output, char, "-", -1)
-	}
-	return output
-}
-
 func appendMessage(input string, ctx conv.Conversation) (conv.Conversation, bool, error) {
 	if len(input) > 0 && input[0] == ':' && input != ":exit" {
 		ctx, cont, commandErr := command.Parse(input, ctx)
@@ -202,7 +189,7 @@ func appendMessage(input string, ctx conv.Conversation) (conv.Conversation, bool
 	}
 
 	// direct send message
-	ctx.Append(openai.ChatMessageRoleUser, input)
+	ctx.Append(conv.ChatRoleUser, input)
 
 	return ctx, true, nil
 }
@@ -210,9 +197,4 @@ func appendMessage(input string, ctx conv.Conversation) (conv.Conversation, bool
 func showPendingHeader(role string, to conv.Message) {
 	yellow := color.New(color.FgHiYellow).SprintFunc()
 	fmt.Print(yellow(fmt.Sprintf("\n%s -> [%.*s]", role, 6, to.Sha1)))
-}
-
-func showMessageMeta(msg conv.Message) {
-	yellow := color.New(color.FgHiYellow).SprintFunc()
-	fmt.Print(yellow(fmt.Sprintf("%.*s [%s] -> %.*s\n", 6, msg.Sha1, msg.Role, 6, msg.ParentSha1)))
 }

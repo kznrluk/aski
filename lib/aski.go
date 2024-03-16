@@ -2,12 +2,10 @@ package lib
 
 import (
 	"fmt"
-	"github.com/kznrluk/aski/chat"
 	"github.com/kznrluk/aski/config"
 	"github.com/kznrluk/aski/conv"
 	"github.com/kznrluk/aski/file"
 	"github.com/kznrluk/aski/session"
-	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
@@ -34,8 +32,10 @@ func Aski(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	if cfg.OpenAIAPIKey == "" {
-		chat.PromptGetAPIKey(&cfg)
+	if cfg.OpenAIAPIKey == "" && cfg.AnthropicAPIKey == "" {
+		configPath := config.MustGetAskiDir()
+		fmt.Printf("No API key found. Please set your API key in %s/config.yaml\n", configPath)
+		os.Exit(1)
 	}
 
 	prof, err := config.GetProfile(cfg, profileTarget)
@@ -46,6 +46,16 @@ func Aski(cmd *cobra.Command, args []string) {
 
 	if model != "" {
 		prof.Model = model
+	}
+
+	if strings.HasPrefix(prof.Model, "gpt") && cfg.OpenAIAPIKey == "" {
+		fmt.Printf("OpenAIAPIKey is required for GPT model. Please set your API key in %s/config.yaml\n", config.MustGetAskiDir())
+		os.Exit(1)
+	}
+
+	if strings.HasPrefix(prof.Model, "claude") && cfg.AnthropicAPIKey == "" {
+		fmt.Printf("AnthropicAPIKey is required for Claude model. Please set your API key in %s/config.yaml\n", config.MustGetAskiDir())
+		os.Exit(1)
 	}
 
 	var ctx conv.Conversation
@@ -74,7 +84,7 @@ func Aski(cmd *cobra.Command, args []string) {
 		println("Restore conversations from " + fileName)
 	} else {
 		ctx = conv.NewConversation(prof)
-		ctx.Append(openai.ChatMessageRoleSystem, prof.SystemContext)
+		ctx.SetSystem(prof.SystemContext)
 
 		if len(fileGlobs) != 0 {
 			fileContents := file.GetFileContents(fileGlobs)
@@ -82,18 +92,16 @@ func Aski(cmd *cobra.Command, args []string) {
 				if content == "" && !session.IsPipe() {
 					fmt.Printf("Append File: %s\n", f.Name)
 				}
-				ctx.Append(openai.ChatMessageRoleUser, fmt.Sprintf("Path: `%s`\n ```\n%s```", f.Path, f.Contents))
+				ctx.Append(conv.ChatRoleUser, fmt.Sprintf("Path: `%s`\n ```\n%s```", f.Path, f.Contents))
 			}
 		}
 
 		for _, i := range prof.Messages {
 			switch strings.ToLower(i.Role) {
-			case openai.ChatMessageRoleSystem:
-				ctx.Append(openai.ChatMessageRoleSystem, i.Content)
-			case openai.ChatMessageRoleUser:
-				ctx.Append(openai.ChatMessageRoleUser, i.Content)
-			case openai.ChatMessageRoleAssistant:
-				ctx.Append(openai.ChatMessageRoleAssistant, i.Content)
+			case conv.ChatRoleUser:
+				ctx.Append(conv.ChatRoleUser, i.Content)
+			case conv.ChatRoleAssistant:
+				ctx.Append(conv.ChatRoleAssistant, i.Content)
 			default:
 				panic(fmt.Errorf("invalid role: %s", i.Role))
 			}
@@ -106,15 +114,15 @@ func Aski(cmd *cobra.Command, args []string) {
 			fmt.Printf("error: %s", err.Error())
 			os.Exit(1)
 		}
-		ctx.Append(openai.ChatMessageRoleUser, string(s))
+		ctx.Append(conv.ChatRoleUser, string(s))
 	}
 
 	if content != "" {
-		ctx.Append(openai.ChatMessageRoleUser, content)
+		ctx.Append(conv.ChatRoleUser, content)
 	}
 
 	if content != "" {
-		_, err = Single(cfg, ctx, isRestMode)
+		_, err = OneShot(cfg, ctx, isRestMode)
 		if err != nil {
 			fmt.Printf("error: %s", err.Error())
 			os.Exit(1)

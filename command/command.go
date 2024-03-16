@@ -6,7 +6,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/kznrluk/aski/config"
 	"github.com/kznrluk/aski/conv"
-	"github.com/sashabaranov/go-openai"
 	"os"
 	"os/exec"
 	"runtime"
@@ -23,10 +22,6 @@ var availableCommands = []cmd{
 	{
 		name:        ":history",
 		description: "Show conversation history.",
-	},
-	{
-		name:        ":summary",
-		description: "Show conversation summary.",
 	},
 	{
 		name:        ":move",
@@ -96,9 +91,6 @@ func Parse(input string, conv conv.Conversation) (conv.Conversation, bool, error
 
 	if commands[0] == ":history" {
 		showContext(conv)
-		return nil, false, nil
-	} else if commands[0] == ":summary" {
-		showSummary(conv)
 		return nil, false, nil
 	} else if commands[0] == ":move" {
 		err := changeHead(commands[1], conv)
@@ -188,14 +180,9 @@ func showContext(conv conv.Conversation) {
 	}
 }
 
-func showSummary(conv conv.Conversation) {
-	blue := color.New(color.FgHiBlue).SprintFunc()
-	fmt.Printf(blue(conv.GetSummary()))
-}
-
-func newMessage(conv conv.Conversation) (conv.Conversation, bool, error) {
+func newMessage(cv conv.Conversation) (conv.Conversation, bool, error) {
 	comments := "\n\n# Save and close editor to continue\n"
-	s := conv.MessagesFromHead()
+	s := cv.MessagesFromHead()
 	for i := len(s) - 1; i >= 0; i-- {
 		msg := s[i]
 		head := ""
@@ -216,11 +203,11 @@ func newMessage(conv conv.Conversation) (conv.Conversation, bool, error) {
 	}
 
 	if result == "" {
-		return conv, false, nil
+		return cv, false, nil
 	}
 
-	conv.Append(openai.ChatMessageRoleUser, result)
-	return conv, true, nil
+	cv.Append(conv.ChatRoleUser, result)
+	return cv, true, nil
 }
 
 func modifyMessage(cv conv.Conversation, sha1 string) (conv.Conversation, bool, error) {
@@ -284,7 +271,7 @@ func editMessage(cv conv.Conversation, sha1 string) (conv.Conversation, bool, er
 	if strings.ToLower(trimmedSha1) == "latest" {
 		msgs := cv.MessagesFromHead()
 		for i := len(msgs) - 1; i >= 0; i-- {
-			if msgs[i].Role == openai.ChatMessageRoleUser {
+			if msgs[i].Role == conv.ChatRoleUser {
 				msg = msgs[i]
 				break
 			}
@@ -299,7 +286,7 @@ func editMessage(cv conv.Conversation, sha1 string) (conv.Conversation, bool, er
 			return nil, false, fmt.Errorf("failed to edit message from SHA1: %v", err)
 		}
 
-		if m.Role != openai.ChatMessageRoleUser {
+		if m.Role != conv.ChatRoleUser {
 			return nil, false, fmt.Errorf("cannot edit non-user message")
 		}
 

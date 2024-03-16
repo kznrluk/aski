@@ -18,7 +18,6 @@ type Profile struct {
 	Model            string           `yaml:"Model"`
 	UserName         string           `yaml:"UserName"`
 	AutoSave         bool             `yaml:"AutoSave"`
-	Summarize        bool             `yaml:"Summarize"`
 	ResponseFormat   string           `yaml:"ResponseFormat"`
 	SystemContext    string           `yaml:"SystemContext"`
 	Messages         []PreMessage     `yaml:"Messages"`
@@ -174,7 +173,6 @@ func InitialProfile() Profile {
 		ProfileName:    "GPT4",
 		UserName:       currentUser.Username,
 		AutoSave:       true,
-		Summarize:      false,
 		ResponseFormat: string(openai.ChatCompletionResponseFormatTypeText),
 		SystemContext:  "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
 		Model:          openai.GPT4,
@@ -196,6 +194,10 @@ func validateProfile(profile Profile) error {
 		return fmt.Errorf("model must not be empty")
 	}
 
+	if !strings.HasPrefix(profile.Model, "gpt") && !strings.HasPrefix(profile.Model, "claude") {
+		return fmt.Errorf("model must start with gpt or claude: %s", profile.Model)
+	}
+
 	for _, message := range profile.Messages {
 		if message.Role == "" {
 			return fmt.Errorf("message Role must not be empty")
@@ -208,6 +210,10 @@ func validateProfile(profile Profile) error {
 	if profile.ResponseFormat != string(openai.ChatCompletionResponseFormatTypeJSONObject) &&
 		profile.ResponseFormat != string(openai.ChatCompletionResponseFormatTypeText) {
 		return fmt.Errorf("response_format must be either json_object or text")
+	}
+
+	if !strings.HasPrefix(profile.Model, "gpt") && profile.ResponseFormat == string(openai.ChatCompletionResponseFormatTypeJSONObject) {
+		return fmt.Errorf("response_format must be text for non-GPT models")
 	}
 
 	if profile.DiceRoll != "" {

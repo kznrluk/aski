@@ -16,10 +16,6 @@ type Config struct {
 	OpenAIAPIKey    string `yaml:"OpenAIAPIKey"`
 	AnthropicAPIKey string `yaml:"AnthropicAPIKey"`
 	CurrentProfile  string `yaml:"CurrentProfile"`
-
-	// Profiles is no longer being used.
-	// It will remain for a while so that the user's settings are not lost.
-	Profiles []Profile `yaml:"Profiles"`
 }
 
 func InitialConfig() Config {
