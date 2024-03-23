@@ -21,10 +21,11 @@ type (
 		MessagesFromHead() []Message
 		Append(role string, message string) Message
 		SetSystem(message string)
+		GetSystem() string
 		SetProfile(profile config.Profile) error
 		Modify(m Message) error
 		ToOpenAIMessage() []openai.ChatCompletionMessage
-		ToAnthropicMessage() ([]anthropic.Message, string)
+		ToAnthropicMessage() []anthropic.Message
 		ChangeHead(sha string) (Message, error)
 		GetProfile() config.Profile
 		ToYAML() ([]byte, error)
@@ -62,9 +63,14 @@ func (c conv) Last() Message {
 	return c.Messages[len(c.Messages)-1]
 }
 
-func (c conv) SetSystem(text string) {
+func (c *conv) SetSystem(text string) {
 	c.System = text
 }
+
+func (c conv) GetSystem() string {
+	return c.System
+}
+
 func (c *conv) Modify(m Message) error {
 	for i, message := range c.Messages {
 		if message.Sha1 == m.Sha1 {
@@ -184,13 +190,6 @@ func (c conv) MessagesFromHead() []Message {
 func (c conv) ToOpenAIMessage() []openai.ChatCompletionMessage {
 	var chatMessages []openai.ChatCompletionMessage
 
-	if c.System != "" {
-		chatMessages = append(chatMessages, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: c.System,
-		})
-	}
-
 	for _, message := range c.MessagesFromHead() {
 		chatMessages = append(chatMessages, openai.ChatCompletionMessage{
 			Role:    message.Role,
@@ -207,7 +206,7 @@ func (c conv) ToOpenAIMessage() []openai.ChatCompletionMessage {
 	return chatMessages
 }
 
-func (c conv) ToAnthropicMessage() ([]anthropic.Message, string) {
+func (c conv) ToAnthropicMessage() []anthropic.Message {
 	var chatMessages []anthropic.Message
 
 	// NOTE: Anthropic does not include system messages in the conversation
@@ -233,7 +232,7 @@ func (c conv) ToAnthropicMessage() ([]anthropic.Message, string) {
 		}
 	}
 
-	return chatMessages, c.System
+	return chatMessages
 }
 
 func (c conv) ToYAML() ([]byte, error) {

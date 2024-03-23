@@ -36,11 +36,19 @@ func (o oai) RetrieveStream(conv conv.Conversation) (string, error) {
 func (o oai) rest(ctx context.Context, conv conv.Conversation) (string, error) {
 	profile := conv.GetProfile()
 	customParams := profile.CustomParameters
+	messages := conv.ToOpenAIMessage()
+	system := openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: conv.GetSystem(),
+	}
+
+	messages = append([]openai.ChatCompletionMessage{system}, messages...)
+
 	resp, err := o.oc.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
 			Model:            profile.Model,
-			Messages:         conv.ToOpenAIMessage(),
+			Messages:         messages,
 			ResponseFormat:   profile.GetResponseFormat(),
 			MaxTokens:        customParams.MaxTokens,
 			Temperature:      customParams.Temperature,
@@ -62,11 +70,19 @@ func (o oai) rest(ctx context.Context, conv conv.Conversation) (string, error) {
 func (o oai) stream(ctx context.Context, conv conv.Conversation) (string, error) {
 	profile := conv.GetProfile()
 	customParams := profile.CustomParameters
+	messages := conv.ToOpenAIMessage()
+	system := openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: conv.GetSystem(),
+	}
+
+	messages = append([]openai.ChatCompletionMessage{system}, messages...)
+
 	stream, err := o.oc.CreateChatCompletionStream(
 		ctx,
 		openai.ChatCompletionRequest{
 			Model:            profile.Model,
-			Messages:         conv.ToOpenAIMessage(),
+			Messages:         messages,
 			ResponseFormat:   profile.GetResponseFormat(),
 			MaxTokens:        customParams.MaxTokens,
 			Temperature:      customParams.Temperature,

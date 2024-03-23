@@ -34,14 +34,14 @@ func (a ap) RetrieveStream(conv conv.Conversation) (string, error) {
 }
 
 func (a ap) rest(ctx context.Context, conv conv.Conversation) (string, error) {
-	messages, system := conv.ToAnthropicMessage()
+	messages := conv.ToAnthropicMessage()
 	model := conv.GetProfile().Model
 	rest, err := a.ac.CreateMessage(
 		ctx,
 		anthropic.MessageRequest{
 			MaxTokens: 4096,
 			Model:     model,
-			System:    system,
+			System:    conv.GetSystem(),
 			Messages:  messages,
 		},
 	)
@@ -57,14 +57,14 @@ func (a ap) rest(ctx context.Context, conv conv.Conversation) (string, error) {
 }
 
 func (a ap) stream(ctx context.Context, conv conv.Conversation) (string, error) {
-	messages, system := conv.ToAnthropicMessage()
+	messages := conv.ToAnthropicMessage()
 	model := conv.GetProfile().Model
 	stream, err := a.ac.CreateMessageStream(
 		ctx,
 		anthropic.MessageRequest{
 			MaxTokens: 4096,
 			Model:     model,
-			System:    system,
+			System:    conv.GetSystem(),
 			Messages:  messages,
 		},
 	)

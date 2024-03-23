@@ -159,6 +159,20 @@ func showContext(conv conv.Conversation) {
 		glamour.WithWordWrap(100),
 	)
 
+	system := conv.GetSystem()
+	if system != "" {
+		fmt.Printf("%s\n", yellow("[System]"))
+		out, err := r.Render(system)
+		if err != nil {
+			fmt.Printf("error: create markdown failed: %s", err.Error())
+		}
+
+		out = strings.TrimSpace(out)
+		for _, context := range strings.Split(out, "\n") {
+			fmt.Printf("%s\n", context)
+		}
+	}
+
 	for _, msg := range conv.GetMessages() {
 		head := ""
 		if msg.Head {
