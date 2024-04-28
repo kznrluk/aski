@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/kznrluk/aski/conv"
 	"github.com/sashabaranov/go-openai"
@@ -61,6 +62,9 @@ func (o oai) rest(ctx context.Context, conv conv.Conversation) (string, error) {
 	)
 
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return "", ErrCancelled
+		}
 		return "", err
 	}
 	fmt.Printf("%s", resp.Choices[0].Message.Content)
@@ -95,6 +99,9 @@ func (o oai) stream(ctx context.Context, conv conv.Conversation) (string, error)
 	)
 
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return "", ErrCancelled
+		}
 		return "", err
 	}
 
@@ -104,6 +111,8 @@ func (o oai) stream(ctx context.Context, conv conv.Conversation) (string, error)
 		if err != nil {
 			if err == io.EOF {
 				break
+			} else if errors.Is(err, context.Canceled) {
+				return "", ErrCancelled
 			} else {
 				return "", err
 			}

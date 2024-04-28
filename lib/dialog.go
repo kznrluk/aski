@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/kznrluk/aski/chat"
@@ -100,6 +101,10 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 		fmt.Printf("\n")
 		data, err := cli.Retrieve(cv, isRestMode)
 		if err != nil {
+			if errors.Is(err, chat.ErrCancelled) {
+				_, _ = cv.ChangeHead(last.ParentSha1)
+				continue
+			}
 			fmt.Printf("\n%s", err.Error())
 			continue
 		}

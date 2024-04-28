@@ -131,6 +131,13 @@ func (c *conv) ChangeHead(sha1Partial string) (Message, error) {
 	foundSha := false
 	foundMessageIndex := -1
 
+	if sha1Partial == "ROOT" {
+		for i := range c.Messages {
+			c.Messages[i].Head = false
+		}
+		return c.convertSystemToMessage(), nil
+	}
+
 	for i, message := range c.Messages {
 		if strings.HasPrefix(message.Sha1, sha1Partial) {
 			foundSha = true

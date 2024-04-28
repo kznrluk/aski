@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/kznrluk/aski/conv"
 	"github.com/kznrluk/go-anthropic"
@@ -47,6 +48,9 @@ func (a ap) rest(ctx context.Context, conv conv.Conversation) (string, error) {
 	)
 
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return "", ErrCancelled
+		}
 		return "", err
 	}
 	if len(rest.Content) == 0 {
@@ -70,6 +74,9 @@ func (a ap) stream(ctx context.Context, conv conv.Conversation) (string, error) 
 	)
 
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return "", ErrCancelled
+		}
 		return "", err
 	}
 
@@ -79,6 +86,8 @@ func (a ap) stream(ctx context.Context, conv conv.Conversation) (string, error) 
 		if err != nil {
 			if err == io.EOF {
 				break
+			} else if errors.Is(err, context.Canceled) {
+				return "", ErrCancelled
 			} else {
 				fmt.Printf("%s", err.Error())
 				return "", err

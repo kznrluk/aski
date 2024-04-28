@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"errors"
 	"github.com/kznrluk/aski/config"
 	"github.com/kznrluk/aski/conv"
 	"os"
@@ -16,6 +17,10 @@ type (
 		RetrieveRest(conv conv.Conversation) (string, error)
 		RetrieveStream(conv conv.Conversation) (string, error)
 	}
+)
+
+var (
+	ErrCancelled = errors.New("cancelled")
 )
 
 func ProvideChat(model string, cfg config.Config) Chat {
